@@ -23,7 +23,7 @@ type CardItem = ImageCard | TextCard;
 
 export function HeroSection() {
   const col1: CardItem[] = [
-    { type: "image", src: "/DSC06545.JPG.jpeg", h: "h-80" },
+    { type: "image", src: "/DSC00362.JPG", h: "h-80" },
     {
       type: "text",
       title: "VRUNDAVAN",
@@ -32,11 +32,11 @@ export function HeroSection() {
       bgColorClass: "bg-primary/95 text-white dark:bg-primary/95",
       icon: "sparkles",
     },
-    { type: "image", src: "/DSC06608.JPG.jpeg", h: "h-96" },
+    { type: "image", src: "/DSC00101.JPG", h: "h-96" },
   ];
 
   const col2: CardItem[] = [
-    { type: "image", src: "/DSC06623.JPG.jpeg", h: "h-72" },
+    { type: "image", src: "/DSC07552.jpg", h: "h-72" },
     {
       type: "text",
       title: "4.9 ★ RATING",
@@ -45,11 +45,11 @@ export function HeroSection() {
       bgColorClass: "bg-card text-foreground border border-border/80",
       icon: "heart",
     },
-    { type: "image", src: "/DSC06643.JPG.jpeg", h: "h-80" },
+    { type: "image", src: "/DSC06391.jpg", h: "h-80" },
   ];
 
   const col3: CardItem[] = [
-    { type: "image", src: "/DSC06650.JPG.jpeg", h: "h-56" },
+    { type: "image", src: "/DSC00362.JPG", h: "h-56" },
     {
       type: "text",
       title: "LOCATIONS",
@@ -57,11 +57,11 @@ export function HeroSection() {
       h: "h-56",
       bgColorClass: "bg-primary/90 text-white dark:bg-primary/90",
     },
-    { type: "image", src: "/DSC06846.JPG.jpeg", h: "h-96" },
+    { type: "image", src: "/DSC00101.JPG", h: "h-96" },
   ];
 
   const col4: CardItem[] = [
-    { type: "image", src: "/DSC06585.JPG.jpeg", h: "h-56" },
+    { type: "image", src: "/DSC07552.jpg", h: "h-56" },
     {
       type: "text",
       title: "BOOKINGS 2026",
@@ -70,13 +70,13 @@ export function HeroSection() {
       bgColorClass: "bg-foreground text-background",
       icon: "calendar",
     },
-    { type: "image", src: "/DSC06623.JPG.jpeg", h: "h-72" },
+    { type: "image", src: "/DSC07552.jpg", h: "h-72" },
   ];
 
   const col5: CardItem[] = [
-    { type: "image", src: "/DSC06629.JPG.jpeg", h: "h-64" },
-    { type: "image", src: "/DSC06643.JPG.jpeg", h: "h-80" },
-    { type: "image", src: "/DSC06650.JPG.jpeg", h: "h-56" },
+    { type: "image", src: "/DSC06391.jpg", h: "h-64" },
+    { type: "image", src: "/DSC06391.jpg", h: "h-80" },
+    { type: "image", src: "/DSC00362.JPG", h: "h-56" },
   ];
 
   const renderCard = (item: CardItem, idx: number, isDuplicate = false) => {
@@ -159,7 +159,7 @@ export function HeroSection() {
 
       {/* Tight Grid of columns - full screen width stretching to edges with px-4 matching gap-4 */}
       <div className="w-full max-w-full px-4 h-[110vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-10 relative z-10">
-        
+
         {/* Column 1 - Always visible */}
         <div className="col-container relative h-full overflow-hidden">
           <div className="flex flex-col gap-4 col-scroll-up">

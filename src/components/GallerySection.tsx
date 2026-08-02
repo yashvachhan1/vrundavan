@@ -1,84 +1,103 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Play, X, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { Play, X, Volume2, VolumeX, Sparkles, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 interface FilmItem {
   id: number;
   src: string;
-  videoSrc: string;
   category: "all" | "weddings" | "pre-weddings" | "films";
   title: string;       // Used for the calligraphy script title
-  subtitle: string;    // Used for couple names inside the gold pill badge
   gridClass: string;
 }
 
 export function GallerySection() {
   const [activeCategory, setActiveCategory] = useState<"all" | "weddings" | "pre-weddings" | "films">("all");
-  const [activeVideo, setActiveVideo] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeImage) {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [activeImage]);
 
   const films: FilmItem[] = [
     {
       id: 1,
-      src: "/DSC06545.JPG.jpeg",
-      videoSrc: "/logo.mp4",
+      src: "/DSC00362.JPG",
       category: "weddings",
       title: "Royal Union",
-      subtitle: "Dev ♥ Priya",
-      gridClass: "col-span-1 h-[450px]",
+      gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 2,
-      src: "/DSC06608.JPG.jpeg",
-      videoSrc: "/logo.mp4",
+      src: "/DSC00101.JPG",
       category: "pre-weddings",
       title: "My Home",
-      subtitle: "Akash ♥ Divyaa",
       gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 3,
-      src: "/DSC06643.JPG.jpeg",
-      videoSrc: "/logo.mp4",
-      category: "films",
-      title: "Forever",
-      subtitle: "Kabir ♥ Kiara",
-      gridClass: "col-span-1 h-[450px]",
-    },
-    {
-      id: 4,
-      src: "/DSC06650.JPG.jpeg",
-      videoSrc: "/logo.mp4",
+      src: "/DSC07552.jpg",
       category: "pre-weddings",
       title: "Golden Hour",
-      subtitle: "Akshay ♥ Ruchi",
       gridClass: "col-span-1 md:col-span-2 h-[350px]",
     },
     {
-      id: 5,
-      src: "/DSC06629.JPG.jpeg",
-      videoSrc: "/logo.mp4",
+      id: 4,
+      src: "/DSC06391.jpg",
       category: "films",
       title: "Love Waltz",
-      subtitle: "Rohan ♥ Riya",
-      gridClass: "col-span-1 h-[350px]",
-    },
-    {
-      id: 6,
-      src: "/DSC06846.JPG.jpeg",
-      videoSrc: "/logo.mp4",
-      category: "weddings",
-      title: "The Reception",
-      subtitle: "Sid ♥ Kiara",
-      gridClass: "col-span-1 h-[350px]",
+      gridClass: "col-span-1 md:col-span-2 h-[350px]",
     },
   ];
 
   const filteredFilms = activeCategory === "all"
     ? films
     : films.filter((f) => f.category === activeCategory);
+
+  const currentIndex = filteredFilms.findIndex(f => f.src === activeImage);
+  const hasNext = currentIndex < filteredFilms.length - 1;
+  const hasPrev = currentIndex > 0;
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasNext) setActiveImage(filteredFilms[currentIndex + 1].src);
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasPrev) setActiveImage(filteredFilms[currentIndex - 1].src);
+  };
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeImage) return;
+    try {
+      const response = await fetch(activeImage);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+      a.download = activeImage.split("/").pop() || "vrundavan-image.jpg";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading image:", error);
+    }
+  };
 
   return (
     <section id="gallery" className="w-full py-28 bg-[#ffffff] text-[#1a1a1a] relative overflow-hidden select-none border-t border-slate-200">
@@ -131,8 +150,8 @@ export function GallerySection() {
           {filteredFilms.map((film) => (
             <div
               key={film.id}
-              onClick={() => setActiveVideo(film.videoSrc)}
-              className={`group relative rounded-[2rem] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_65px_rgba(0,51,102,0.12)] hover:scale-[1.01] transition-all duration-500 cursor-pointer bg-[#080808] ${film.gridClass}`}
+              onClick={() => setActiveImage(film.src)}
+              className={`group relative rounded-2xl overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_65px_rgba(0,51,102,0.12)] hover:scale-[1.01] transition-all duration-500 cursor-pointer bg-[#080808] ${film.gridClass}`}
             >
               {/* Cover Image Plate */}
               <Image
@@ -145,21 +164,11 @@ export function GallerySection() {
               {/* Subtle dark layout contrast vignette */}
               <div className="absolute inset-0 bg-black/15 group-hover:bg-black/35 transition-colors duration-500" />
 
-              {/* Center Play Button Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center z-15">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/20 backdrop-blur-md border border-white/35 flex items-center justify-center text-white scale-90 group-hover:scale-105 transition-all duration-300 shadow-md">
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white translate-x-0.5" />
-                </div>
-              </div>
-
-              {/* Unified Signature Calligraphy & Rounded Pill Badge Text Overlays */}
+              {/* Unified Signature Calligraphy Overlay */}
               <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-20 pointer-events-none">
                 <div className="flex flex-col gap-0 items-start text-white">
                   <span className="font-script text-5xl sm:text-6xl text-white drop-shadow-md select-none leading-none">
                     {film.title}
-                  </span>
-                  <span className="text-[9px] font-serif tracking-[0.25em] text-amber-300 uppercase bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 mt-2 font-medium">
-                    {film.subtitle}
                   </span>
                 </div>
               </div>
@@ -171,50 +180,65 @@ export function GallerySection() {
       </div>
 
       {/* 
-        Cinema Fullscreen Video Lightbox Player Modal:
+        Fullscreen Image Lightbox Player Modal (Rendered via Portal to escape overflow-hidden)
       */}
-      {activeVideo && (
+      {activeImage && typeof document !== "undefined" && createPortal(
         <div 
           className="fixed inset-0 z-[100] bg-black/98 flex items-center justify-center p-4 sm:p-8 animate-fade-in"
-          onClick={() => setActiveVideo(null)}
+          onClick={() => setActiveImage(null)}
+          data-lenis-prevent="true"
         >
-          {/* Main Video Container Frame */}
+          {/* Main Image Container Frame */}
           <div 
-            className="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl z-20"
+            className="relative w-full h-full max-w-7xl max-h-[90vh] flex items-center justify-center z-20"
             onClick={(e) => e.stopPropagation()}
           >
-            <video
-              src={activeVideo}
-              autoPlay
-              controls
-              playsInline
-              muted={isMuted}
-              className="w-full h-full object-contain"
+            <img
+              src={activeImage}
+              alt="Fullscreen view"
+              className="max-w-full max-h-full object-contain rounded-xl shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
             />
 
             {/* Custom Control Actions */}
             <div className="absolute top-4 right-4 flex items-center gap-3 z-30">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMuted(!isMuted);
-                }}
+                onClick={handleDownload}
                 className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer"
-                aria-label={isMuted ? "Unmute" : "Mute"}
+                aria-label="Download"
               >
-                {isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+                <Download className="w-4 h-4" />
               </button>
-
               <button
-                onClick={() => setActiveVideo(null)}
+                onClick={() => setActiveImage(null)}
                 className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer"
-                aria-label="Close Playback"
+                aria-label="Close"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Navigation Arrows */}
+            {hasPrev && (
+              <button
+                onClick={handlePrev}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer z-30"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+            {hasNext && (
+              <button
+                onClick={handleNext}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors cursor-pointer z-30"
+                aria-label="Next image"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

@@ -105,7 +105,7 @@ export function PackagesSection() {
           {packages.map((pkg) => (
             <div
               key={pkg.id}
-              className={`relative rounded-[2.5rem] p-8 sm:p-10 flex flex-col justify-between transition-all duration-500 hover:scale-[1.015] ${
+              className={`relative rounded-2xl p-8 sm:p-10 flex flex-col justify-between transition-all duration-500 hover:scale-[1.015] ${
                 pkg.isPopular
                   ? "bg-white border-2 border-amber-500/20 shadow-[0_25px_60px_rgba(0,51,102,0.08)]"
                   : "bg-[#F0F7FD]/80 hover:bg-white border border-slate-200/60 shadow-[0_15px_40px_rgba(0,0,0,0.03)]"

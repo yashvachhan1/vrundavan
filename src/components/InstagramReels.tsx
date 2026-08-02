@@ -204,7 +204,7 @@ export function InstagramReels() {
         <div
           ref={carouselRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto gap-6 pb-4 no-scrollbar snap-x snap-mandatory scroll-smooth px-[4vw]"
+          className="flex overflow-x-auto gap-6 pt-6 pb-10 -mt-6 no-scrollbar snap-x snap-mandatory scroll-smooth px-[4vw]"
         >
           {reels.map((reel) => (
             <a
@@ -212,7 +212,7 @@ export function InstagramReels() {
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative flex-shrink-0 w-[290px] sm:w-[320px] aspect-[9/16] rounded-[2.2rem] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.05)] hover:shadow-[0_25px_60px_rgba(0,51,102,0.12)] hover:scale-[1.015] transition-all duration-500 bg-[#080808] snap-start"
+              className="group relative flex-shrink-0 w-[290px] sm:w-[320px] aspect-[9/16] rounded-2xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.05)] hover:shadow-[0_25px_60px_rgba(0,51,102,0.12)] hover:scale-[1.015] transition-all duration-500 bg-[#080808] snap-start"
             >
               {/* Reels video loop element */}
               <video

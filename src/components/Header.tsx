@@ -43,8 +43,9 @@ export function Header() {
   ];
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isHidden ? "opacity-0 pointer-events-none -translate-y-full" : "opacity-100 translate-y-0"
       } ${
         scrolled
@@ -95,44 +96,88 @@ export function Header() {
 
         {/* Mobile menu trigger */}
         <div className="flex md:hidden items-center gap-3">
-          <ThemeToggle />
           <button
-            onClick={() => setIsOpen(!isOpen)}
+            onClick={() => setIsOpen(true)}
             className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
-            aria-label="Toggle menu"
+            aria-label="Open menu"
           >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <Menu className="w-6 h-6" />
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer */}
-      <div
-        className={`md:hidden fixed inset-x-0 top-20 bg-background/95 backdrop-blur-lg border-b border-border shadow-lg transition-all duration-300 ease-in-out ${
-          isOpen ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"
+      </header>
+
+      {/* Mobile Sidebar Overlay (Moved OUTSIDE header to escape transform containment) */}
+      <div 
+        className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
       >
-        <div className="px-6 py-8 flex flex-col gap-5">
-          {navLinks.map((link) => (
+        {/* Dark Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+        
+        {/* Sidebar Panel */}
+        <div 
+          className={`absolute top-0 left-0 bottom-0 w-[80vw] max-w-sm bg-background border-r border-border shadow-2xl transition-transform duration-300 ease-out flex flex-col ${
+            isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border/50">
+            {/* Logo */}
+            <div className="relative w-32 h-10 ml-[-20px] flex items-center justify-center">
+              <Image
+                src="/logo.png"
+                alt="Vrundavan Studio Logo"
+                fill
+                className="object-contain scale-[1.65] mix-blend-multiply dark:invert dark:mix-blend-screen"
+                priority
+              />
+            </div>
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Links */}
+          <div className="px-6 py-8 flex flex-col gap-6 overflow-y-auto flex-grow">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsOpen(false)}
+                className="text-sm font-bold uppercase tracking-widest text-foreground/80 hover:text-primary dark:text-slate-200 dark:hover:text-sky-400 border-b border-border/10 pb-3"
+              >
+                {link.name}
+              </a>
+            ))}
+          </div>
+
+          {/* Fixed Bottom Action */}
+          <div className="p-6 border-t border-border/20 bg-background">
             <a
-              key={link.name}
-              href={link.href}
+              href="#contact"
               onClick={() => setIsOpen(false)}
-              className="text-sm font-bold uppercase tracking-widest text-foreground/80 hover:text-primary dark:text-slate-200 dark:hover:text-sky-400 border-b border-border/50 pb-2"
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold uppercase tracking-widest bg-primary dark:bg-sky-500 text-white dark:text-slate-950 text-xs shadow-md"
             >
-              {link.name}
+              <Phone className="w-4 h-4" />
+              Call / Book Shoot
             </a>
-          ))}
-          <a
-            href="#contact"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold uppercase tracking-widest bg-primary dark:bg-sky-500 text-white dark:text-slate-950 text-xs shadow-md"
-          >
-            <Phone className="w-4 h-4" />
-            Call / Book Shoot
-          </a>
+          </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }

@@ -12,17 +12,17 @@ export function VideoShowcase() {
   const films: VideoItem[] = [
     {
       id: "01",
-      videoSrc: "/logo.mp4",
+      videoSrc: "/01.mp4",
       poster: "/DSC06545.JPG.jpeg",
     },
     {
       id: "02",
-      videoSrc: "/logo.mp4",
+      videoSrc: "/ENGAGEMENT TEASER.mp4",
       poster: "/DSC06608.JPG.jpeg",
     },
     {
       id: "03",
-      videoSrc: "/logo.mp4",
+      videoSrc: "/04.mp4",
       poster: "/DSC06643.JPG.jpeg",
     },
   ];
@@ -76,7 +76,7 @@ export function VideoShowcase() {
                 muted
                 playsInline
                 onEnded={nextSlide}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover scale-[1.35]"
               />
               
               {/* Very subtle gradient overlay to keep it clean */}

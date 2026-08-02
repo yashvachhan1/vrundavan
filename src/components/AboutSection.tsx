@@ -57,10 +57,10 @@ export function AboutSection() {
         <div className="lg:col-span-5 relative w-full h-[580px] flex items-center justify-center">
           
           {/* Main Large Vertical Image Frame */}
-          <div className="relative w-[280px] h-[420px] sm:w-[320px] sm:h-[480px] rounded-3xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.08)] border-4 border-white bg-white transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl z-10">
-            <div className="relative w-full h-full rounded-2xl overflow-hidden">
+          <div className="relative w-[280px] h-[420px] sm:w-[320px] sm:h-[480px] rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.08)] border-4 border-white bg-white transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl z-10">
+            <div className="relative w-full h-full rounded-xl overflow-hidden">
               <Image
-                src="/DSC06846.JPG.jpeg"
+                src="/about_main.png"
                 alt="Director's visual choice"
                 fill
                 className="object-cover transition-transform duration-700 hover:scale-105"
@@ -71,10 +71,10 @@ export function AboutSection() {
           </div>
 
           {/* Overlapping Small Offset Image Frame */}
-          <div className="absolute bottom-6 right-4 sm:right-6 z-20 w-[180px] h-[240px] sm:w-[210px] sm:h-[280px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-4 border-white bg-white rotate-3 transition-all duration-500 hover:scale-[1.03] hover:rotate-0 hover:-translate-y-2">
-            <div className="relative w-full h-full rounded-xl overflow-hidden">
+          <div className="absolute bottom-6 right-4 sm:right-6 z-20 w-[180px] h-[240px] sm:w-[210px] sm:h-[280px] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-4 border-white bg-white rotate-3 transition-all duration-500 hover:scale-[1.03] hover:rotate-0 hover:-translate-y-2">
+            <div className="relative w-full h-full rounded-lg overflow-hidden">
               <Image
-                src="/DSC06650.JPG.jpeg"
+                src="/about_candid.png"
                 alt="Candid moment frame"
                 fill
                 className="object-cover"

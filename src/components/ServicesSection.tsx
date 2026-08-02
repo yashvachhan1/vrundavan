@@ -12,7 +12,7 @@ export function ServicesSection() {
       scriptLabel: "Vivah Stories",
       lens: "85mm f/1.4",
       desc: "Bespoke architectural wedding narratives documented across global heritage destinations.",
-      img: "/DSC06545.JPG.jpeg",
+      img: "/services_destination.png",
       icon: Compass,
       href: "#contact",
     },
@@ -22,7 +22,7 @@ export function ServicesSection() {
       scriptLabel: "Love in Motion",
       lens: "35mm f/1.2",
       desc: "Poetic, unscripted coupling stories captured in organic natural golden lighting.",
-      img: "/DSC06608.JPG.jpeg",
+      img: "/services_pre_wedding.png",
       icon: Eye,
       href: "#contact",
     },
@@ -32,7 +32,7 @@ export function ServicesSection() {
       scriptLabel: "Theatrical Cuts",
       lens: "24mm f/1.4",
       desc: "Directorial wedding showreels with custom soundtracks, color grading and dialogues.",
-      img: "/DSC06643.JPG.jpeg",
+      img: "/services_cinematic.png",
       icon: Film,
       href: "#contact",
     },
@@ -42,7 +42,7 @@ export function ServicesSection() {
       scriptLabel: "Heritage Canvas",
       lens: "50mm f/1.2",
       desc: "Luxury studio lighting and classic staging emphasizing the royalty of character profiles.",
-      img: "/DSC06623.JPG.jpeg",
+      img: "/services_portrait.png",
       icon: User,
       href: "#contact",
     },
@@ -98,7 +98,7 @@ export function ServicesSection() {
               <a
                 key={srv.id}
                 href={srv.href}
-                className="group relative w-full aspect-[3/4] rounded-[2rem] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.15)] hover:scale-[1.015] transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 text-white"
+                className="group relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_50px_rgba(0,0,0,0.15)] hover:scale-[1.015] transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 text-white"
               >
                 {/* Full-bleed Photo Background */}
                 <div className="absolute inset-0 z-0">
