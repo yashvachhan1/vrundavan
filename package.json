@@ -6,7 +6,10 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces",
+    "dev": "concurrently \"npm run dev -w frontend\" \"npm run dev -w admin\"",
     "build": "npm run build --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4"
   }
 }
