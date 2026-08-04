@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Check, Sparkles, Gem, Phone, ShieldCheck, Settings } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 import Link from 'next/link';
 import { createClient } from '../../utils/supabase/server';
 
@@ -38,26 +39,19 @@ export async function PackagesSection() {
 
 
   return (
-    <section id="packages" className="w-full py-20 md:py-28 bg-background text-foreground relative overflow-hidden select-none">
+    <section id="packages" className="w-full py-14 md:py-20 bg-background text-foreground relative overflow-hidden select-none">
       
       {/* Background brand accents */}
       <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[130px] pointer-events-none -z-10" />
 
       <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         
-        {/* Section Header */}
-        <div className="flex flex-col gap-3 mb-10 md:mb-16 text-left">
-          <div className="flex items-center gap-2 text-primary">
-            <Gem className="w-4 h-4 text-gold-deep" />
-            <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
-              Bespoke Plans
-            </span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-            Investment & <span className="italic font-light text-primary">Packages</span>
-          </h2>
-          <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-        </div>
+        <SectionHeader
+          icon={Gem}
+          eyebrow="Bespoke Plans"
+          title="Investment &"
+          accent="Packages"
+        />
 
         <div className="flex justify-end mb-10">
           <Link 
@@ -151,7 +145,7 @@ export async function PackagesSection() {
         </div>
 
         {/* Security / Quality guarantee note */}
-        <div className="mt-16 flex items-center justify-center gap-2 text-slate-400 font-mono text-[9px] uppercase tracking-widest">
+        <div className="mt-10 flex items-center justify-center gap-2 text-slate-400 font-mono text-[9px] uppercase tracking-widest">
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>Transparent Pricing • Custom requirements available on demand</span>
         </div>

@@ -15,7 +15,7 @@ export function ContactSection() {
   };
 
   return (
-    <section id="contact" className="relative z-10 w-full py-20 md:py-28 bg-background text-foreground select-none border-t border-primary/5 shadow-[0_-30px_60px_rgba(0,0,0,0.04)]">
+    <section id="contact" className="relative z-10 w-full py-14 md:py-20 bg-background text-foreground select-none border-t border-primary/5 shadow-[0_-30px_60px_rgba(0,0,0,0.04)]">
       <div className="max-w-[1440px] mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-12 gap-16">
         
         {/* Left Side: Contact Information Details */}
@@ -28,7 +28,7 @@ export function ContactSection() {
               Let&apos;s write your <br />
               <span className="italic font-light text-primary">next chapter.</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#555555] leading-relaxed max-w-sm">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
               Dates fill up quickly for wedding seasons. Reach out today to reserve your slots or plan a consultation session.
             </p>
           </div>
@@ -40,7 +40,7 @@ export function ContactSection() {
                 <Phone className="w-4 h-4 text-primary group-hover:text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#777777]">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Call Us
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -55,7 +55,7 @@ export function ContactSection() {
                 <Mail className="w-4 h-4 text-primary group-hover:text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#777777]">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Write Us
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -74,7 +74,7 @@ export function ContactSection() {
                 </svg>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#777777]">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Instagram
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -89,7 +89,7 @@ export function ContactSection() {
                 <MapPin className="w-4 h-4 text-primary" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#777777]">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   Studio Address
                 </span>
                 <span className="text-sm font-semibold text-foreground">
@@ -121,7 +121,7 @@ export function ContactSection() {
                 required
                 value={formState.name}
                 onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-                className="w-full bg-[#F0F7FD] border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                className="w-full bg-surface border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
                 placeholder="e.g. Aarav Patel"
               />
             </div>
@@ -135,7 +135,7 @@ export function ContactSection() {
                 required
                 value={formState.email}
                 onChange={(e) => setFormState({ ...formState, email: e.target.value })}
-                className="w-full bg-[#F0F7FD] border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
+                className="w-full bg-surface border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
                 placeholder="e.g. name@domain.com"
               />
             </div>
@@ -150,7 +150,7 @@ export function ContactSection() {
               required
               value={formState.date}
               onChange={(e) => setFormState({ ...formState, date: e.target.value })}
-              className="w-full bg-[#F0F7FD] border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
+              className="w-full bg-surface border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors"
             />
           </div>
 
@@ -163,7 +163,7 @@ export function ContactSection() {
               required
               value={formState.msg}
               onChange={(e) => setFormState({ ...formState, msg: e.target.value })}
-              className="w-full bg-[#F0F7FD] border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
+              className="w-full bg-surface border border-primary/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
               placeholder="Tell us about your wedding location or portraits vision..."
             />
           </div>

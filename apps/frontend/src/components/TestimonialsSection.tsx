@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { MessageSquareQuote, ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 interface TestimonialItem {
   id: number;
@@ -48,48 +49,45 @@ export function TestimonialsSection() {
   };
 
   return (
-    <section id="testimonials" className="w-full py-20 md:py-28 bg-background text-foreground relative overflow-hidden select-none">
-      
+    // Lighter vertical rhythm than the grid sections: this is a single slim
+    // slider, not a dense grid, so it doesn't need the same py-28 weight.
+    <section id="testimonials" className="w-full py-16 md:py-20 bg-background text-foreground relative overflow-hidden select-none">
+
       {/* Decorative soft backdrop element */}
       <div className="absolute top-1/2 right-10 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] pointer-events-none -z-10" />
 
       <div className="max-w-[85vw] md:max-w-[70vw] mx-auto w-full relative z-10">
-        
-        {/* Section Header */}
-        <div className="flex flex-col items-center text-center gap-3 mb-10 md:mb-16">
-          <div className="flex items-center gap-2 text-primary">
-            <MessageSquareQuote className="w-4 h-4 text-gold-deep" />
-            <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
-              Love Notes
-            </span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-            Client <span className="italic font-light text-primary">Stories</span>
-          </h2>
-          <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-        </div>
 
-        {/* 
+        <SectionHeader
+          icon={MessageSquareQuote}
+          eyebrow="Love Notes"
+          title="Client"
+          accent="Stories"
+          align="center"
+          className="!mb-8 md:!mb-10"
+        />
+
+        {/*
           Editorial Testimonial Showcase Box:
           Includes a huge quote icon, italic serif narrative text, couple meta, and sliding controls.
+          Was min-h-[380px] + justify-between, which forced the same fixed height
+          regardless of quote length and spread the pieces out with empty air
+          whenever a quote was short (as most are). A natural gap-based stack
+          sizes itself to the content instead.
         */}
-        <div className="relative flex flex-col items-center text-center px-4 sm:px-8 min-h-[380px] justify-between">
-          
+        <div className="relative flex flex-col items-center text-center px-4 sm:px-8 gap-6">
+
           {/* Quote Sign Icon */}
-          <div className="text-gold/20 mb-6">
-            <Quote className="w-14 h-14 mx-auto fill-gold/10 rotate-180" />
-          </div>
+          <Quote className="w-10 h-10 text-gold/20 fill-gold/10 rotate-180" />
 
           {/* Testimonial Quote - transitions nicely based on index */}
-          <div className="flex-grow flex items-center justify-center max-w-4xl">
-            <p className="text-lg sm:text-xl md:text-2xl font-serif font-light italic leading-relaxed text-[#333] transition-all duration-700 select-text">
-              “{testimonials[activeIndex].quote}”
-            </p>
-          </div>
+          <p className="max-w-4xl text-lg sm:text-xl md:text-2xl font-serif font-light italic leading-relaxed text-[#333] transition-all duration-700 select-text">
+            “{testimonials[activeIndex].quote}”
+          </p>
 
           {/* Couple profile & tags details */}
-          <div className="mt-10 flex flex-col items-center gap-4">
-            
+          <div className="mt-2 flex flex-col items-center gap-4">
+
             {/* Couple Circular Thumbnail Frame */}
             <div className="relative w-16 h-16 rounded-full overflow-hidden border border-gold/25 shadow-md">
               <Image
@@ -114,7 +112,7 @@ export function TestimonialsSection() {
           </div>
 
           {/* Carousel Buttons Controls */}
-          <div className="flex items-center gap-6 mt-12">
+          <div className="flex items-center gap-6 mt-4">
             <button
               onClick={prevTestimonial}
               className="w-11 h-11 rounded-full border border-slate-200 hover:border-primary hover:text-primary flex items-center justify-center transition-colors cursor-pointer text-slate-500"

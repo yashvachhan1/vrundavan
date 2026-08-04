@@ -3,6 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { ArrowRight, Aperture, Compass, Eye, Film, User } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 export function ServicesSection() {
   const services = [
@@ -53,7 +54,7 @@ export function ServicesSection() {
       Clean pure white background matching the header background.
       Completely borderless layout philosophy.
     */
-    <section id="services" className="w-full py-20 md:py-28 bg-background text-foreground relative overflow-hidden select-none">
+    <section id="services" className="w-full py-14 md:py-20 bg-background text-foreground relative overflow-hidden select-none">
       
       {/* Subtle background decorative accents */}
       <div className="absolute top-1/4 left-10 w-[500px] h-[500px] bg-slate-100/50 rounded-full blur-[130px] pointer-events-none -z-10" />
@@ -72,19 +73,12 @@ export function ServicesSection() {
 
       <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         
-        {/* Section Header */}
-        <div className="flex flex-col gap-3 mb-10 md:mb-16 text-left">
-          <div className="flex items-center gap-2 text-primary">
-            <Aperture className="w-4 h-4 text-gold-deep" />
-            <span className="text-xs font-bold uppercase tracking-[0.35em]">
-              Creative Fields
-            </span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-            Our Service <span className="italic font-light text-primary">Categories</span>
-          </h2>
-          <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-        </div>
+        <SectionHeader
+          icon={Aperture}
+          eyebrow="Creative Fields"
+          title="Our Service"
+          accent="Categories"
+        />
 
         {/* 
           Borderless Fine-Art Photography Grid:

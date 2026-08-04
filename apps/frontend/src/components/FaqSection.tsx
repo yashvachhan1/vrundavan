@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { HelpCircle, Plus, Minus } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 interface FaqItem {
   id: number;
@@ -45,26 +46,20 @@ export function FaqSection() {
   };
 
   return (
-    <section id="faq" className="w-full py-20 md:py-28 bg-surface text-foreground relative overflow-hidden select-none">
+    <section id="faq" className="w-full py-14 md:py-20 bg-surface text-foreground relative overflow-hidden select-none">
       
       {/* Decorative Brand Circles */}
       <div className="absolute top-1/4 left-10 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
       <div className="max-w-[900px] mx-auto w-full px-6 relative z-10">
         
-        {/* Section Header */}
-        <div className="flex flex-col items-center text-center gap-3 mb-10 md:mb-16">
-          <div className="flex items-center gap-2 text-primary">
-            <HelpCircle className="w-4 h-4 text-gold-deep" />
-            <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
-              Common Queries
-            </span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-            Frequently Asked <span className="italic font-light text-primary">Questions</span>
-          </h2>
-          <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-        </div>
+        <SectionHeader
+          icon={HelpCircle}
+          eyebrow="Common Queries"
+          title="Frequently Asked"
+          accent="Questions"
+          align="center"
+        />
 
         {/* 
           FAQ Accordion List:

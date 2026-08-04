@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ArrowRight, Compass, Camera, Sparkles } from "lucide-react";
+import { ArrowRight, Compass, Camera, Sparkles, Feather } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 export function AboutSection() {
   const pillars = [
@@ -29,7 +30,7 @@ export function AboutSection() {
   return (
     // Shares the tint with StatsBanner above it: the two read as one
     // introductory block rather than two separate bands.
-    <section id="about" className="w-full py-20 md:py-28 bg-surface overflow-hidden relative select-none">
+    <section id="about" className="w-full py-14 md:py-20 bg-surface overflow-hidden relative select-none">
       
       {/* 
         User SVGs used as subtle luxury watermarks.
@@ -94,7 +95,7 @@ export function AboutSection() {
               <span className="text-[7px] font-bold uppercase tracking-[0.3em] text-primary leading-none mb-1">
                 VRUNDAVAN
               </span>
-              <span className="text-[9px] font-serif italic text-rose-500 font-bold leading-none">
+              <span className="text-[9px] font-serif italic text-gold-deep font-bold leading-none">
                 Est. 2015
               </span>
               <span className="text-[6px] font-bold uppercase tracking-[0.2em] text-primary mt-1">
@@ -108,16 +109,14 @@ export function AboutSection() {
         {/* Right Side: Editorial Philosophy Text & 3 Key Pillars */}
         <div className="lg:col-span-7 flex flex-col justify-center gap-8 text-left relative z-10">
           
-          <div className="flex flex-col gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
-              The Philosophy
-            </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-              We capture the <br />
-              <span className="italic font-light text-primary">unscripted, pure & eternal</span> moments.
-            </h2>
-            <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-          </div>
+          <SectionHeader
+            icon={Feather}
+            eyebrow="The Philosophy"
+            title="We capture the"
+            accent="unscripted, pure & eternal"
+            suffix="moments."
+            className="!mb-0"
+          />
 
           {/* 3 Pillars */}
           <div className="flex flex-col gap-6">
@@ -125,15 +124,15 @@ export function AboutSection() {
               const Icon = pillar.icon;
               return (
                 <div key={pillar.id} className="flex gap-4 items-start group/pillar cursor-pointer">
-                  <span className="text-xs font-mono font-bold text-primary/40 group-hover/pillar:text-rose-500 transition-colors duration-300 pt-1">
+                  <span className="text-xs font-mono font-bold text-primary/40 group-hover/pillar:text-gold-deep transition-colors duration-300 pt-1">
                     {pillar.id}
                   </span>
                   <div className="flex flex-col gap-1.5">
                     <h3 className="text-base font-bold text-foreground flex items-center gap-2 group-hover/pillar:text-primary transition-colors duration-300">
-                      <Icon className="w-4 h-4 text-rose-400 group-hover/pillar:scale-115 transition-transform duration-300" />
+                      <Icon className="w-4 h-4 text-gold-deep group-hover/pillar:scale-115 transition-transform duration-300" />
                       {pillar.title}
                     </h3>
-                    <p className="text-xs sm:text-sm text-[#555555] leading-relaxed max-w-lg">
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-lg">
                       {pillar.desc}
                     </p>
                   </div>
@@ -148,7 +147,7 @@ export function AboutSection() {
               <span className="text-xs font-bold uppercase tracking-widest text-foreground">
                 Vrundavan Studio
               </span>
-              <span className="text-[10px] uppercase tracking-[0.15em] text-[#777777]">
+              <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
                 Junagadh, Gujarat
               </span>
             </div>

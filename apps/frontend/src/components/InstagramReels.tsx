@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Clapperboard, Heart, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 interface ReelItem {
   id: string;
@@ -68,6 +69,7 @@ export function InstagramReels() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
   const [activeIndex, setActiveIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(1);
 
   // Helper to dynamically calculate card width + gap for pixel-perfect snapping
   const getStepWidth = () => {
@@ -80,6 +82,29 @@ export function InstagramReels() {
     }
     return 344;
   };
+
+  // How many cards fit in the viewport at once. Feeds the dot count so we
+  // never render dots for scroll positions the browser can't actually reach
+  // (when N cards are visible there are only reels.length - N + 1 reachable
+  // starting positions).
+  useEffect(() => {
+    const measure = () => {
+      const container = carouselRef.current;
+      const first = container?.firstElementChild as HTMLElement | null;
+      if (!container || !first) return;
+      const gap = 24;
+      const count = Math.max(
+        1,
+        Math.round((container.clientWidth + gap) / (first.offsetWidth + gap))
+      );
+      setVisibleCount(Math.min(count, reels.length));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [reels.length]);
+
+  const dotCount = Math.max(1, reels.length - visibleCount + 1);
 
   const scrollLeft = () => {
     if (carouselRef.current) {
@@ -98,7 +123,9 @@ export function InstagramReels() {
       const { scrollLeft } = carouselRef.current;
       const stepWidth = getStepWidth();
       const index = Math.round(scrollLeft / stepWidth);
-      setActiveIndex(Math.max(0, Math.min(index, reels.length - 1)));
+      // Cap at dotCount - 1 so the active dot never lands on a position that
+      // isn't rendered (would leave every dot in the inactive state).
+      setActiveIndex(Math.max(0, Math.min(index, dotCount - 1)));
     }
   };
 
@@ -128,7 +155,7 @@ export function InstagramReels() {
   }, []);
 
   return (
-    <section className="w-full py-20 md:py-28 bg-surface text-foreground relative overflow-hidden select-none">
+    <section className="w-full py-14 md:py-20 bg-surface text-foreground relative overflow-hidden select-none">
       
       {/* Hide native scrollbar on all browser viewports */}
       <style jsx global>{`
@@ -141,70 +168,57 @@ export function InstagramReels() {
         }
       `}</style>
 
-      {/* 
-        Aesthetic Section Header (Centered alignment matching other sections)
-      */}
-      <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10 mb-10 md:mb-14">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 text-left">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-primary">
-              <Clapperboard className="w-4 h-4 text-gold-deep" />
-              <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
-                Social Canvas
-              </span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-              Instagram <span className="italic font-light text-primary">Reels</span>
-            </h2>
-            <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-          </div>
-
-          {/* Controls & Follow Badge Wrapper */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 rounded-full text-xs font-serif font-bold tracking-wider bg-gradient-to-r from-purple-600 via-pink-600 to-gold text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-            >
-              <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
-              </svg>
-              <span>Follow @vrundavan_studio</span>
-            </a>
-
-            {/* Slider navigation buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={scrollLeft}
-                className="w-10 h-10 rounded-full border border-slate-300 hover:border-primary hover:text-primary flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Previous Reels"
+      <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
+        <SectionHeader
+          icon={Clapperboard}
+          eyebrow="Social Canvas"
+          title="Instagram"
+          accent="Reels"
+          aside={
+            <div className="flex items-center gap-4 flex-wrap">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 rounded-full text-xs font-serif font-bold tracking-wider bg-gradient-to-r from-purple-600 via-pink-600 to-gold text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
               >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={scrollRight}
-                className="w-10 h-10 rounded-full border border-slate-300 hover:border-primary hover:text-primary flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Next Reels"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.051.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
+                </svg>
+                <span>Follow @vrundavan_studio</span>
+              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={scrollLeft}
+                  className="w-10 h-10 rounded-full border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Previous Reels"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={scrollRight}
+                  className="w-10 h-10 rounded-full border border-border hover:border-primary hover:text-primary flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Next Reels"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
+          }
+        />
       </div>
 
-      {/* 
-        Full-bleed Carousel Container:
-        Moved out of the max-w-[92vw] centering div, using px-[4vw] padding.
-        This aligns the first card with the header, but allows the scrolling content 
-        to flow beautifully to the very edge of the viewport without clipping/cut-offs.
+      {/*
+        Carousel bounded by the same 1440px container as every other section, so
+        the first card lines up with the header. Cards use flex-basis that
+        subtracts the gap so exactly N fit per viewport with no partial cards
+        peeking on the edges: 1 up on mobile, 2 on sm, 3 on md, 4 on lg.
       */}
-      <div className="w-full relative z-10">
+      <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         <div
           ref={carouselRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto gap-6 pt-6 pb-10 -mt-6 no-scrollbar snap-x snap-mandatory scroll-smooth px-[4vw]"
+          className="flex overflow-x-auto gap-6 pt-6 pb-10 -mt-6 no-scrollbar snap-x snap-mandatory scroll-smooth"
         >
           {reels.map((reel) => (
             <a
@@ -212,7 +226,7 @@ export function InstagramReels() {
               href="https://instagram.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative flex-shrink-0 w-[290px] sm:w-[320px] aspect-[9/16] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.015] transition-all duration-500 bg-[#080808] snap-start"
+              className="group relative flex-[0_0_100%] sm:flex-[0_0_calc(50%-12px)] md:flex-[0_0_calc(33.333%-16px)] lg:flex-[0_0_calc(20%-19.2px)] aspect-[9/16] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.015] transition-all duration-500 bg-[#080808] snap-start"
             >
               {/* Reels video loop element */}
               <video
@@ -286,7 +300,7 @@ export function InstagramReels() {
           Aesthetic tracking dashes at the bottom indicating current slide scroll state.
         */}
         <div className="flex justify-center gap-2.5 mt-8 z-20 relative">
-          {reels.map((_, idx) => (
+          {Array.from({ length: dotCount }).map((_, idx) => (
             <button
               key={idx}
               onClick={() => {

@@ -12,7 +12,7 @@ export function StatsBanner() {
   ];
 
   return (
-    <section className="w-full px-4 md:px-8 py-20 bg-surface text-foreground flex flex-col justify-center items-center overflow-hidden">
+    <section className="w-full px-4 md:px-8 py-14 md:py-16 bg-surface text-foreground flex flex-col justify-center items-center overflow-hidden">
       {/* Decorative shine and rotation animations */}
       <style jsx global>{`
         @keyframes shineSweep {
@@ -57,20 +57,20 @@ export function StatsBanner() {
         Changed rounded-full to rounded-[2rem] on mobile and md:rounded-full on desktop.
         This prevents vertical stacking from breaking/overflowing on smaller mobile screen widths.
       */}
-      <div className="shine-light relative w-full max-w-5xl rounded-[2rem] md:rounded-full bg-[#c1d7ed] border border-primary/5 p-6 md:p-6 shadow-md hover:shadow-lg hover:scale-[1.01] transition-all duration-500 flex flex-col md:flex-row items-center justify-between gap-6 px-6 md:px-14 overflow-hidden">
+      <div className="shine-light relative w-full max-w-5xl rounded-[2rem] md:rounded-full bg-white border border-primary/10 p-6 md:p-6 shadow-md hover:shadow-lg hover:scale-[1.01] transition-all duration-500 flex flex-col md:flex-row items-center justify-between gap-6 px-6 md:px-14 overflow-hidden">
         
         {/* Left: 200+ Stories */}
         <div className="flex items-center gap-5 group/stat cursor-pointer z-10 w-full md:w-auto justify-center md:justify-start">
           <div className="relative flex items-center justify-center">
             {/* Spinning decorative accent ring */}
-            <div className="absolute w-14 h-14 rounded-full border border-dashed border-rose-400/80 animate-spin-slow" />
-            <div className="absolute w-12 h-12 rounded-full border border-rose-300/40 -left-1 transition-transform duration-500 group-hover/stat:scale-110" />
+            <div className="absolute w-14 h-14 rounded-full border border-dashed border-gold-deep/70 animate-spin-slow" />
+            <div className="absolute w-12 h-12 rounded-full border border-gold/30 -left-1 transition-transform duration-500 group-hover/stat:scale-110" />
             <span className="relative text-3xl md:text-4xl font-serif text-foreground font-normal z-10 pl-2">
               200+
             </span>
           </div>
           <div className="flex flex-col text-left max-w-[130px]">
-            <span className="text-[10px] font-bold text-[#444444] uppercase tracking-widest leading-tight transition-colors duration-300 group-hover/stat:text-rose-500">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-tight transition-colors duration-300 group-hover/stat:text-primary">
               Handcrafted wedding stories told.
             </span>
           </div>
@@ -120,7 +120,7 @@ export function StatsBanner() {
             <span className="text-sm text-gold font-bold tracking-widest transition-transform duration-300 group-hover/rating:scale-105 origin-left">
               ★★★★★
             </span>
-            <span className="text-[10px] font-bold text-[#444444] uppercase tracking-widest leading-none mt-1 transition-colors duration-300 group-hover/rating:text-primary">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1 transition-colors duration-300 group-hover/rating:text-primary">
               4.9 with 320+ ratings
             </span>
           </div>

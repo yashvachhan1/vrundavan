@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Play, X, Volume2, VolumeX, Images, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { SectionHeader } from "./SectionHeader";
 
 interface FilmItem {
   id: number;
@@ -100,46 +101,37 @@ export function GallerySection() {
   };
 
   return (
-    <section id="gallery" className="w-full py-20 md:py-28 bg-surface text-foreground relative overflow-hidden select-none">
+    <section id="gallery" className="w-full py-14 md:py-20 bg-surface text-foreground relative overflow-hidden select-none">
       
       <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         
-        {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10 md:mb-16 text-left">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-primary">
-              <Images className="w-4 h-4 text-gold-deep" />
-              <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
-                Exhibition
-              </span>
+        <SectionHeader
+          icon={Images}
+          eyebrow="Exhibition"
+          title="Bespoke Film"
+          accent="Gallery"
+          aside={
+            <div className="flex flex-wrap gap-x-6 gap-y-3 font-serif text-[10px] font-bold tracking-[0.25em] text-muted-foreground uppercase border-b border-border pb-2">
+              {(["all", "weddings", "pre-weddings", "films"] as const).map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`hover:text-primary transition-colors cursor-pointer relative pb-1 ${
+                      isActive ? "text-primary" : ""
+                    }`}
+                  >
+                    {cat.replace("-", " ")}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-primary" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
-              Bespoke Film <span className="italic font-light text-primary">Gallery</span>
-            </h2>
-            <div className="w-12 h-[2px] bg-primary/20 mt-2" />
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex flex-wrap gap-x-6 gap-y-3 font-serif text-[10px] font-bold tracking-[0.25em] text-slate-500 uppercase border-b border-slate-200/50 pb-2">
-            {(["all", "weddings", "pre-weddings", "films"] as const).map((cat) => {
-              const isActive = activeCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`hover:text-primary transition-colors cursor-pointer relative pb-1 ${
-                    isActive ? "text-primary" : ""
-                  }`}
-                >
-                  {cat.replace("-", " ")}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-primary" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          }
+        />
 
         {/* 
           Asymmetrical Cinematic Grid:
