@@ -39,13 +39,22 @@ export function Footer() {
 
           {/* Brand */}
           <div className="md:col-span-4 flex flex-col gap-5">
-            <div className="relative w-44 h-14 ml-[-40px]">
+            {/*
+              logo.png is a square 7200x7200 mark-over-text lockup. The
+              Header's wide/cropped treatment (w-44 h-14 + negative margin +
+              scale-1.5) is tuned to show only the mark inside a short navbar
+              — copying it here squeezed the square image into a landscape
+              box and shoved it off the left edge, clipping both the mark and
+              the "Junagadh" text beneath it. A plain square box shows the
+              whole lockup at a readable size instead.
+            */}
+            <div className="relative w-20 h-20">
               <Image
                 unoptimized
                 src="/logo.png"
                 alt="Vrundavan Studio"
                 fill
-                className="object-contain object-left scale-[1.5] brightness-0 invert"
+                className="object-contain brightness-0 invert"
               />
             </div>
             <p className="text-sm leading-relaxed text-white/60 max-w-xs">
