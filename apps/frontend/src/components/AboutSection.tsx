@@ -27,7 +27,9 @@ export function AboutSection() {
   ];
 
   return (
-    <section id="about" className="w-full py-28 bg-[#F0F7FD] overflow-hidden relative select-none mt-[-2px]">
+    // Shares the tint with StatsBanner above it: the two read as one
+    // introductory block rather than two separate bands.
+    <section id="about" className="w-full py-20 md:py-28 bg-surface overflow-hidden relative select-none">
       
       {/* 
         User SVGs used as subtle luxury watermarks.
@@ -35,6 +37,7 @@ export function AboutSection() {
       */}
       <div className="absolute -top-12 -left-12 w-[350px] h-[350px] opacity-[0.08] mix-blend-multiply pointer-events-none select-none z-0">
         <Image
+          unoptimized
           src="/image-from-rawpixel-id-6482040-svg.svg"
           alt="Ornate corner frame"
           fill
@@ -51,48 +54,50 @@ export function AboutSection() {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center relative z-10">
+      <div className="max-w-[1440px] mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center relative z-10">
         
         {/* Left Side: Staggered Dynamic Image Collage with elegant shadows & frames */}
         <div className="lg:col-span-5 relative w-full h-[580px] flex items-center justify-center">
           
           {/* Main Large Vertical Image Frame */}
-          <div className="relative w-[280px] h-[420px] sm:w-[320px] sm:h-[480px] rounded-2xl overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.08)] border-4 border-white bg-white transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl z-10">
+          <div className="relative w-[280px] h-[420px] sm:w-[320px] sm:h-[480px] rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-white transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl z-10">
             <div className="relative w-full h-full rounded-xl overflow-hidden">
               <Image
-                src="https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/about_main.png"
+                unoptimized
+                src="https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/about_main.png"
                 alt="Director's visual choice"
                 fill
                 className="object-cover transition-transform duration-700 hover:scale-105"
-                sizes="(max-w-768px) 100vw, 33vw"
+                sizes="(max-width: 768px) 100vw, 33vw"
                 priority
               />
             </div>
           </div>
 
           {/* Overlapping Small Offset Image Frame */}
-          <div className="absolute bottom-6 right-4 sm:right-6 z-20 w-[180px] h-[240px] sm:w-[210px] sm:h-[280px] rounded-xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border-4 border-white bg-white rotate-3 transition-all duration-500 hover:scale-[1.03] hover:rotate-0 hover:-translate-y-2">
+          <div className="absolute bottom-6 right-4 sm:right-6 z-20 w-[180px] h-[240px] sm:w-[210px] sm:h-[280px] rounded-xl overflow-hidden shadow-lg border-4 border-white bg-white rotate-3 transition-all duration-500 hover:scale-[1.03] hover:rotate-0 hover:-translate-y-2">
             <div className="relative w-full h-full rounded-lg overflow-hidden">
               <Image
-                src="https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/about_candid.png"
+                unoptimized
+                src="https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/about_candid.png"
                 alt="Candid moment frame"
                 fill
                 className="object-cover"
-                sizes="(max-w-768px) 100vw, 20vw"
+                sizes="(max-width: 768px) 100vw, 20vw"
               />
             </div>
           </div>
 
           {/* Luxury Circular Studio Seal */}
-          <div className="absolute top-10 left-2 sm:left-4 z-20 w-24 h-24 rounded-full bg-white/80 backdrop-blur-md border border-[#003366]/10 flex flex-col items-center justify-center p-2 text-center shadow-lg -rotate-6 pointer-events-none">
-            <div className="w-20 h-20 rounded-full border border-dashed border-[#003366]/20 flex flex-col items-center justify-center">
-              <span className="text-[7px] font-bold uppercase tracking-[0.3em] text-[#003366] leading-none mb-1">
+          <div className="absolute top-10 left-2 sm:left-4 z-20 w-24 h-24 rounded-full bg-white/80 backdrop-blur-md border border-primary/10 flex flex-col items-center justify-center p-2 text-center shadow-lg -rotate-6 pointer-events-none">
+            <div className="w-20 h-20 rounded-full border border-dashed border-primary/20 flex flex-col items-center justify-center">
+              <span className="text-[7px] font-bold uppercase tracking-[0.3em] text-primary leading-none mb-1">
                 VRUNDAVAN
               </span>
               <span className="text-[9px] font-serif italic text-rose-500 font-bold leading-none">
                 Est. 2015
               </span>
-              <span className="text-[6px] font-bold uppercase tracking-[0.2em] text-[#003366] mt-1">
+              <span className="text-[6px] font-bold uppercase tracking-[0.2em] text-primary mt-1">
                 JUNAGADH
               </span>
             </div>
@@ -104,12 +109,12 @@ export function AboutSection() {
         <div className="lg:col-span-7 flex flex-col justify-center gap-8 text-left relative z-10">
           
           <div className="flex flex-col gap-3">
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#003366]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary">
               The Philosophy
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-[#1a1a1a]">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
               We capture the <br />
-              <span className="italic font-light text-[#003366]">unscripted, pure & eternal</span> moments.
+              <span className="italic font-light text-primary">unscripted, pure & eternal</span> moments.
             </h2>
             <div className="w-12 h-[2px] bg-primary/20 mt-2" />
           </div>
@@ -120,11 +125,11 @@ export function AboutSection() {
               const Icon = pillar.icon;
               return (
                 <div key={pillar.id} className="flex gap-4 items-start group/pillar cursor-pointer">
-                  <span className="text-xs font-mono font-bold text-[#003366]/40 group-hover/pillar:text-rose-500 transition-colors duration-300 pt-1">
+                  <span className="text-xs font-mono font-bold text-primary/40 group-hover/pillar:text-rose-500 transition-colors duration-300 pt-1">
                     {pillar.id}
                   </span>
                   <div className="flex flex-col gap-1.5">
-                    <h3 className="text-base font-bold text-[#1a1a1a] flex items-center gap-2 group-hover/pillar:text-[#003366] transition-colors duration-300">
+                    <h3 className="text-base font-bold text-foreground flex items-center gap-2 group-hover/pillar:text-primary transition-colors duration-300">
                       <Icon className="w-4 h-4 text-rose-400 group-hover/pillar:scale-115 transition-transform duration-300" />
                       {pillar.title}
                     </h3>
@@ -138,9 +143,9 @@ export function AboutSection() {
           </div>
 
           {/* Signature and CTA Details */}
-          <div className="flex items-center justify-between gap-6 border-t border-[#003366]/10 pt-6 mt-2 max-w-lg">
+          <div className="flex items-center justify-between gap-6 border-t border-primary/10 pt-6 mt-2 max-w-lg">
             <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#1a1a1a]">
+              <span className="text-xs font-bold uppercase tracking-widest text-foreground">
                 Vrundavan Studio
               </span>
               <span className="text-[10px] uppercase tracking-[0.15em] text-[#777777]">
@@ -150,7 +155,7 @@ export function AboutSection() {
             
             <a
               href="#gallery"
-              className="group flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#003366] hover:text-[#003366]/80 transition-colors"
+              className="group flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-primary hover:text-primary/80 transition-colors"
             >
               Explore Gallery
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1.5" />

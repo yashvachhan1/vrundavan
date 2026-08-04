@@ -46,7 +46,17 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
     `;
     document.head.appendChild(style);
 
+    // Let sections pause/resume the page scroll (VideoShowcase locks it while
+    // its film is fitted). Stopping adds `lenis-stopped` to <html>, which the
+    // injected `overflow: hidden` rule above turns into a real scroll lock.
+    const onStop = () => lenis.stop();
+    const onStart = () => lenis.start();
+    window.addEventListener("lenis-stop", onStop);
+    window.addEventListener("lenis-start", onStart);
+
     return () => {
+      window.removeEventListener("lenis-stop", onStop);
+      window.removeEventListener("lenis-start", onStart);
       lenis.destroy();
       cancelAnimationFrame(rafId);
       const injectedStyle = document.getElementById("lenis-css");

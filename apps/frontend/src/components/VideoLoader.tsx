@@ -46,7 +46,7 @@ export function VideoLoader({ onStartFade, onComplete }: VideoLoaderProps) {
     >
       <video
         ref={videoRef}
-        src="https://res.cloudinary.com/ujwz0e7r/video/upload/q_auto,f_auto/logo.mp4"
+        src="https://res.cloudinary.com/ujwz0e7r/video/upload/w_1920,q_auto,f_auto/logo.mp4"
         autoPlay
         muted
         playsInline

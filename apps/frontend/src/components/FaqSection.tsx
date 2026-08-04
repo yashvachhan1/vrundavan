@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Plus, Minus } from "lucide-react";
+import { HelpCircle, Plus, Minus } from "lucide-react";
 
 interface FaqItem {
   id: number;
@@ -45,25 +45,25 @@ export function FaqSection() {
   };
 
   return (
-    <section id="faq" className="w-full py-28 bg-[#F0F7FD] text-[#1a1a1a] relative overflow-hidden select-none border-t border-slate-200">
+    <section id="faq" className="w-full py-20 md:py-28 bg-surface text-foreground relative overflow-hidden select-none">
       
       {/* Decorative Brand Circles */}
       <div className="absolute top-1/4 left-10 w-[350px] h-[350px] bg-primary/5 rounded-full blur-[120px] pointer-events-none -z-10" />
 
-      <div className="max-w-[92vw] md:max-w-[65vw] mx-auto w-full relative z-10">
+      <div className="max-w-[900px] mx-auto w-full px-6 relative z-10">
         
         {/* Section Header */}
-        <div className="flex flex-col items-center text-center gap-3 mb-16">
-          <div className="flex items-center gap-2 text-[#003366]">
-            <Sparkles className="w-4 h-4 text-amber-600" />
+        <div className="flex flex-col items-center text-center gap-3 mb-10 md:mb-16">
+          <div className="flex items-center gap-2 text-primary">
+            <HelpCircle className="w-4 h-4 text-gold-deep" />
             <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
               Common Queries
             </span>
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-[#1a1a1a]">
-            Frequently Asked <span className="italic font-light text-[#003366]">Questions</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
+            Frequently Asked <span className="italic font-light text-primary">Questions</span>
           </h2>
-          <div className="w-12 h-[2px] bg-[#003366]/20 mt-2" />
+          <div className="w-12 h-[2px] bg-primary/20 mt-2" />
         </div>
 
         {/* 
@@ -84,10 +84,10 @@ export function FaqSection() {
                   onClick={() => toggleFaq(faq.id)}
                   className="w-full py-6 flex items-center justify-between gap-6 text-left cursor-pointer group"
                 >
-                  <span className="text-base sm:text-lg font-serif font-normal text-[#1a1a1a] group-hover:text-[#003366] transition-colors duration-300">
+                  <span className="text-base sm:text-lg font-serif font-normal text-foreground group-hover:text-primary transition-colors duration-300">
                     {faq.question}
                   </span>
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-slate-200 group-hover:border-[#003366] flex items-center justify-center text-slate-400 group-hover:text-[#003366] transition-all duration-300">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full border border-slate-200 group-hover:border-primary flex items-center justify-center text-slate-400 group-hover:text-primary transition-all duration-300">
                     {isOpen ? (
                       <Minus className="w-4 h-4 transition-transform duration-300 rotate-180" />
                     ) : (

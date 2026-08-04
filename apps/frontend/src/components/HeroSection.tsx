@@ -23,60 +23,60 @@ type CardItem = ImageCard | TextCard;
 
 export function HeroSection() {
   const col1: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00362.JPG", h: "h-80" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-80" },
     {
       type: "text",
       title: "VRUNDAVAN",
       desc: "Preserving sacred union stories in organic cinema.",
       h: "h-56",
-      bgColorClass: "bg-primary/95 text-white dark:bg-primary/95",
+      bgColorClass: "bg-primary text-white",
       icon: "sparkles",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00101.JPG", h: "h-96" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG", h: "h-96" },
   ];
 
   const col2: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC07552.jpg", h: "h-72" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-72" },
     {
       type: "text",
       title: "4.9 ★ RATING",
       desc: "Over 320+ luxury destination weddings completed globally.",
       h: "h-64",
-      bgColorClass: "bg-card text-foreground border border-border/80",
+      bgColorClass: "bg-white text-foreground",
       icon: "heart",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC06391.jpg", h: "h-80" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-80" },
   ];
 
   const col3: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00362.JPG", h: "h-56" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-56" },
     {
       type: "text",
       title: "LOCATIONS",
       desc: "Shooting in Rajkot, Udaipur, Ahmedabad, & Dubai.",
       h: "h-56",
-      bgColorClass: "bg-primary/90 text-white dark:bg-primary/90",
+      bgColorClass: "bg-primary/90 text-white",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00101.JPG", h: "h-96" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG", h: "h-96" },
   ];
 
   const col4: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC07552.jpg", h: "h-56" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-56" },
     {
       type: "text",
       title: "BOOKINGS 2026",
       desc: "Open for bespoke destination bookings. Reserve dates.",
       h: "h-56",
-      bgColorClass: "bg-foreground text-background",
+      bgColorClass: "bg-white/10 backdrop-blur-md text-white border border-white/20",
       icon: "calendar",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC07552.jpg", h: "h-72" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-72" },
   ];
 
   const col5: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC06391.jpg", h: "h-64" },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC06391.jpg", h: "h-80" },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00362.JPG", h: "h-56" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-64" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-80" },
+    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-56" },
   ];
 
   const renderCard = (item: CardItem, idx: number, isDuplicate = false) => {
@@ -87,15 +87,16 @@ export function HeroSection() {
       return (
         <div
           key={`${isDuplicate ? 'dup' : 'orig'}-${idx}`}
-          className={`relative w-full ${item.h} rounded-2xl overflow-hidden shadow-md hover:shadow-[0_20px_45px_rgba(0,51,102,0.3)] hover:scale-[1.03] transition-all duration-500 cursor-pointer group ${duplicateClass}`}
+          className={`relative w-full ${item.h} rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.03] transition-all duration-500 cursor-pointer group ${duplicateClass}`}
         >
           <Image
             src={item.src}
             alt="Vrundavan photo frame"
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
-            sizes="(max-w-640px) 50vw, (max-w-1024px) 25vw, 20vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
             priority={idx < 2}
+            unoptimized
           />
         </div>
       );
@@ -103,7 +104,7 @@ export function HeroSection() {
       return (
         <div
           key={`${isDuplicate ? 'dup' : 'orig'}-${idx}`}
-          className={`relative w-full ${item.h} rounded-2xl p-6 flex flex-col justify-between shadow-md border border-border/20 hover:scale-[1.03] transition-all duration-500 cursor-pointer ${item.bgColorClass} ${duplicateClass}`}
+          className={`relative w-full ${item.h} rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:scale-[1.03] transition-all duration-500 cursor-pointer ${item.bgColorClass} ${duplicateClass}`}
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-75">
@@ -129,7 +130,7 @@ export function HeroSection() {
   return (
     <section
       id="home"
-      className="relative h-screen w-full bg-background flex items-center justify-center overflow-hidden select-none"
+      className="relative h-screen w-full bg-[#030814] flex items-center justify-center overflow-hidden select-none"
     >
       {/* Re-enabled auto-scroll animations on mobile and desktop viewports */}
       <style jsx global>{`
@@ -143,9 +144,11 @@ export function HeroSection() {
         }
         .col-scroll-up {
           animation: scrollUpCol 40s linear infinite;
+          will-change: transform;
         }
         .col-scroll-down {
           animation: scrollDownCol 40s linear infinite;
+          will-change: transform;
         }
         .col-container:hover .col-scroll-up,
         .col-container:hover .col-scroll-down {
@@ -154,8 +157,9 @@ export function HeroSection() {
       `}</style>
 
       {/* Top & Bottom Gradient Overlays */}
-      <div className="absolute top-0 inset-x-0 h-[30vh] bg-gradient-to-b from-background via-[#003366]/20 to-transparent z-20 pointer-events-none" />
-      <div className="absolute bottom-0 inset-x-0 h-[30vh] bg-gradient-to-t from-background via-[#003366]/20 to-transparent z-20 pointer-events-none" />
+      <div className="absolute top-0 inset-x-0 h-[30vh] bg-gradient-to-b from-[#030814] via-[#030814]/70 to-transparent z-20 pointer-events-none" />
+      {/* Bottom fade blends the dark hero into the white section that follows */}
+      <div className="absolute bottom-0 inset-x-0 h-[30vh] bg-gradient-to-t from-[#030814] via-[#030814]/70 to-transparent z-20 pointer-events-none" />
 
       {/* Tight Grid of columns - full screen width stretching to edges with px-4 matching gap-4 */}
       <div className="w-full max-w-full px-4 h-[110vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-10 relative z-10">

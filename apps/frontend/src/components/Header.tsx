@@ -2,27 +2,20 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Menu, X, Phone } from "lucide-react";
 
-export function Header() {
+export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
   const [isHidden, setIsHidden] = React.useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-
-      const videoSection = document.getElementById("video-showcase");
-      if (videoSection) {
-        const rect = videoSection.getBoundingClientRect();
-        // Hide the header if the video showcase covers the header height threshold
-        const isCoveringScreen = rect.top < 80 && rect.bottom > 80;
-        setIsHidden(isCoveringScreen);
-      } else {
-        setIsHidden(false);
-      }
+      // Hysteresis: with Lenis momentum the offset can sit right on a single
+      // threshold and flip the header back and forth. Require a clear crossing
+      // in each direction instead.
+      const y = window.scrollY;
+      setScrolled((prev) => (prev ? y > 8 : y > 48));
     };
 
     // Defer initial execution to bypass synchronous useEffect setState lint rules
@@ -34,35 +27,65 @@ export function Header() {
     };
   }, []);
 
+  // VideoShowcase owns the decision about when its film is full-screen, so it
+  // tells us to get out of the way rather than us measuring its box from here.
+  React.useEffect(() => {
+    const onNavHide = (e: Event) => setIsHidden((e as CustomEvent<boolean>).detail);
+    window.addEventListener("nav-hide", onNavHide);
+    return () => window.removeEventListener("nav-hide", onNavHide);
+  }, []);
+
+  // The header stays dark in both states so the logo can always render inverted
+  // to white. Only the backdrop and padding change on scroll.
+  const solid = scrolled || forceSolid;
+
   const navLinks = [
-    { name: "Home", href: "#home" },
-    { name: "Services", href: "#services" },
-    { name: "Gallery", href: "#gallery" },
-    { name: "Testimonials", href: "#testimonials" },
-    { name: "Contact", href: "#contact" },
+    { name: "Home", href: "/#home" },
+    { name: "Services", href: "/#services" },
+    { name: "Gallery", href: "/#gallery" },
+    { name: "Testimonials", href: "/#testimonials" },
+    { name: "Contact", href: "/#contact" },
   ];
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        className={`fixed top-0 left-0 right-0 z-50 transition-[opacity,transform,padding] duration-500 ${
         isHidden ? "opacity-0 pointer-events-none -translate-y-full" : "opacity-100 translate-y-0"
-      } ${
-        scrolled
-          ? "bg-background/90 backdrop-blur-md py-4 shadow-lg"
-          : "bg-transparent py-7"
-      }`}
+      } ${solid ? "py-4" : "py-7"}`}
     >
-      <div className="w-full px-4 md:px-8 flex items-center justify-between">
+      {/*
+        The two backdrops are stacked and cross-faded rather than swapped on one
+        element. A gradient is a background-image and the solid bar is a
+        background-color, and CSS cannot interpolate between the two — swapping
+        them made the gradient pop out abruptly. Keeping the border on the solid
+        layer also avoids animating border-width from 0 to 1px, which flashed a
+        line across the header mid-transition.
+      */}
+      <div
+        aria-hidden
+        className={`absolute inset-0 bg-gradient-to-b from-[#030814]/80 to-transparent transition-opacity duration-500 ${
+          solid ? "opacity-0" : "opacity-100"
+        }`}
+      />
+      <div
+        aria-hidden
+        className={`absolute inset-0 bg-[#030814]/95 backdrop-blur-md shadow-[0_2px_24px_rgba(0,0,0,0.35)] border-b border-white/10 transition-opacity duration-500 ${
+          solid ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
+      <div className="relative z-10 w-full px-4 md:px-8 flex items-center justify-between">
         
         {/* Left: Dynamic transparent logo */}
         <a href="#home" className="flex items-center group">
           <div className="relative w-48 h-16 md:w-52 md:h-16 ml-[-48px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.02]">
             <Image
+              unoptimized
               src="/logo.png"
               alt="Vrundavan Studio Logo"
               fill
-              className="object-contain scale-[1.65] mix-blend-multiply dark:invert dark:mix-blend-screen"
+              className="object-contain scale-[1.65] brightness-0 invert"
               priority
             />
           </div>
@@ -74,22 +97,21 @@ export function Header() {
             <a
               key={link.name}
               href={link.href}
-              className="relative text-sm font-bold uppercase tracking-[0.18em] text-foreground/80 hover:text-foreground dark:text-slate-100 dark:hover:text-white transition-colors py-2 group/link"
+              className="relative text-xs font-semibold uppercase tracking-[0.2em] py-2 group/link font-serif text-white/90 hover:text-white transition-colors"
             >
               {link.name}
-              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-primary dark:bg-sky-400 scale-x-0 group-hover/link:scale-x-100 origin-bottom-right group-hover/link:origin-bottom-left transition-transform duration-300 ease-out" />
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-white scale-x-0 group-hover/link:scale-x-100 origin-bottom-right group-hover/link:origin-bottom-left transition-transform duration-300 ease-out" />
             </a>
           ))}
         </nav>
 
         {/* Right Side: Theme Toggle & Solid Premium CTA */}
         <div className="hidden md:flex items-center gap-6">
-          <ThemeToggle />
           <a
             href="#contact"
-            className="flex items-center gap-2.5 px-7 py-3 rounded-full text-xs font-bold uppercase tracking-[0.15em] bg-primary hover:bg-primary/95 text-white dark:bg-sky-500 dark:hover:bg-sky-400 dark:text-slate-950 shadow-md transition-all duration-300 hover:scale-[1.03] cursor-pointer"
+            className="flex items-center gap-2.5 px-7 py-3 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] shadow-md transition-all duration-300 hover:scale-[1.03] cursor-pointer font-sans bg-white hover:bg-white/90 text-primary"
           >
-            <Phone className="w-4 h-4" />
+            <Phone className="w-3.5 h-3.5" />
             Book Shoot
           </a>
         </div>
@@ -98,7 +120,7 @@ export function Header() {
         <div className="flex md:hidden items-center gap-3">
           <button
             onClick={() => setIsOpen(true)}
-            className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
+            className="p-2 rounded-lg transition-colors bg-white/10 hover:bg-white/20 text-white border border-white/20"
             aria-label="Open menu"
           >
             <Menu className="w-6 h-6" />
@@ -131,16 +153,16 @@ export function Header() {
             {/* Logo */}
             <div className="relative w-32 h-10 ml-[-20px] flex items-center justify-center">
               <Image
+                unoptimized
                 src="/logo.png"
                 alt="Vrundavan Studio Logo"
                 fill
-                className="object-contain scale-[1.65] mix-blend-multiply dark:invert dark:mix-blend-screen"
+                className="object-contain scale-[1.65] mix-blend-multiply"
                 priority
               />
             </div>
             {/* Actions */}
             <div className="flex items-center gap-2">
-              <ThemeToggle />
               <button
                 onClick={() => setIsOpen(false)}
                 className="p-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground transition-colors"
@@ -158,7 +180,7 @@ export function Header() {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className="text-sm font-bold uppercase tracking-widest text-foreground/80 hover:text-primary dark:text-slate-200 dark:hover:text-sky-400 border-b border-border/10 pb-3"
+                className="text-sm font-semibold uppercase tracking-widest text-slate-700 hover:text-primary border-b border-border/60 pb-3 font-serif transition-colors"
               >
                 {link.name}
               </a>
@@ -170,9 +192,9 @@ export function Header() {
             <a
               href="#contact"
               onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold uppercase tracking-widest bg-primary dark:bg-sky-500 text-white dark:text-slate-950 text-xs shadow-md"
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-semibold uppercase tracking-[0.2em] bg-primary text-white text-[11px] font-sans shadow-md"
             >
-              <Phone className="w-4 h-4" />
+              <Phone className="w-3.5 h-3.5" />
               Call / Book Shoot
             </a>
           </div>

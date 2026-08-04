@@ -3,34 +3,30 @@
 @layer base {
   :root {
     --background: #ffffff;
-    --foreground: #0f172a;
+    --foreground: #1a1a1a;
     --primary: #003366;
     --primary-foreground: #ffffff;
-    --accent: #003366;
+    --accent: #b7791f;
     --accent-foreground: #ffffff;
     --muted: #f1f5f9;
     --muted-foreground: #64748b;
     --border: #e2e8f0;
     --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card-foreground: #1a1a1a;
+    --surface: #f0f7fd;
 
-    /* Declare CSS variables in :root pointing to Next.js font variables with system fallbacks */
+    /* Gold accent. Was 15 hardcoded amber-200..600 utilities across six files;
+       the three steps below are the only ones the design actually uses, so the
+       whole accent now shifts from here. */
+    --gold-soft: #fcd34d; /* on dark photography overlays */
+    --gold: #f59e0b; /* badges, stars, rules */
+    --gold-deep: #d97706; /* icons and text on light backgrounds */
+
+    /* Point at the CSS variables injected by next/font in layout.tsx */
+    --font-sans: var(--font-jakarta), system-ui, sans-serif;
     --font-serif: var(--font-playfair), Georgia, serif;
     --font-script: var(--font-great-vibes), cursive;
-  }
-
-  .dark {
-    --background: #030814;
-    --foreground: #f8fafc;
-    --primary: #003366;
-    --primary-foreground: #ffffff;
-    --accent: #004d99;
-    --accent-foreground: #ffffff;
-    --muted: #0d1527;
-    --muted-foreground: #94a3b8;
-    --border: #1e293b;
-    --card: #091122;
-    --card-foreground: #f8fafc;
+    --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   }
 }
 
@@ -46,19 +42,31 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-card: var(--card);
-  --color-card-foreground: var(--color-card-foreground);
+  --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
 
-  /* Map theme classes to base root CSS variables */
+  /* Elevation scale. There were 19 bespoke shadow values across the sections,
+     every one of them used exactly once; these four cover all of it. Tinted
+     with the brand navy rather than neutral black so shadows sit in the
+     palette instead of greying the page. */
+  --shadow-sm: 0 2px 8px rgba(0, 51, 102, 0.05);
+  --shadow-md: 0 12px 32px rgba(0, 51, 102, 0.07);
+  --shadow-lg: 0 24px 56px rgba(0, 51, 102, 0.11);
+  --shadow-xl: 0 32px 80px rgba(0, 51, 102, 0.16);
+
+  --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
-  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-script: var(--font-script);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Custom Scrollbar */
@@ -80,24 +88,26 @@ html {
   scroll-behavior: smooth;
 }
 
-/* 
-  Global Luxury Typography Shadow Styling:
-  Applies a premium, highly visible drop shadow to all h1, h2, and target headers
-  to match the strong visual depth in the user's reference screenshot.
-*/
-h1,
-h2,
-.font-serif-shadow {
-  text-shadow: 2px 3px 6px rgba(0, 0, 0, 0.26) !important;
+/* Drifting dust motes behind the shrunk video screen */
+@keyframes floatDot {
+  from { transform: translateY(0px) translateX(0px); }
+  to   { transform: translateY(-18px) translateX(8px); }
 }
 
-/* 
-  Forced Dark-Mode Header Logo Inversion:
-  Directly intercepts image when rendering in dark mode, forcing both the text 
-  and the background symbol mark to turn pure white using brightness(0) invert(1).
-*/
-.dark img[alt="Vrundavan Studio Logo"],
-.dark-theme-logo {
-  filter: brightness(0) invert(1) !important;
-  mix-blend-mode: screen !important;
+/* Offset anchor jumps so the fixed header never covers a section heading */
+[id] {
+  scroll-margin-top: 6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

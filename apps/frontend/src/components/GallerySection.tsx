@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Play, X, Volume2, VolumeX, Sparkles, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Play, X, Volume2, VolumeX, Images, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 interface FilmItem {
   id: number;
@@ -34,28 +34,28 @@ export function GallerySection() {
   const films: FilmItem[] = [
     {
       id: 1,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00362.JPG",
+      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG",
       category: "weddings",
       title: "Royal Union",
       gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 2,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00101.JPG",
+      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG",
       category: "pre-weddings",
       title: "My Home",
       gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 3,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC07552.jpg",
+      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg",
       category: "pre-weddings",
       title: "Golden Hour",
       gridClass: "col-span-1 md:col-span-2 h-[350px]",
     },
     {
       id: 4,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC06391.jpg",
+      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg",
       category: "films",
       title: "Love Waltz",
       gridClass: "col-span-1 md:col-span-2 h-[350px]",
@@ -100,23 +100,23 @@ export function GallerySection() {
   };
 
   return (
-    <section id="gallery" className="w-full py-28 bg-[#ffffff] text-[#1a1a1a] relative overflow-hidden select-none border-t border-slate-200">
+    <section id="gallery" className="w-full py-20 md:py-28 bg-surface text-foreground relative overflow-hidden select-none">
       
-      <div className="max-w-[92vw] mx-auto w-full relative z-10">
+      <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 text-left">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-10 md:mb-16 text-left">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-[#003366]">
-              <Sparkles className="w-4 h-4 text-amber-600" />
+            <div className="flex items-center gap-2 text-primary">
+              <Images className="w-4 h-4 text-gold-deep" />
               <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">
                 Exhibition
               </span>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-[#1a1a1a]">
-              Bespoke Film <span className="italic font-light text-[#003366]">Gallery</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-normal font-serif leading-tight text-foreground">
+              Bespoke Film <span className="italic font-light text-primary">Gallery</span>
             </h2>
-            <div className="w-12 h-[2px] bg-[#003366]/20 mt-2" />
+            <div className="w-12 h-[2px] bg-primary/20 mt-2" />
           </div>
 
           {/* Category Tabs */}
@@ -127,13 +127,13 @@ export function GallerySection() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`hover:text-[#003366] transition-colors cursor-pointer relative pb-1 ${
-                    isActive ? "text-[#003366]" : ""
+                  className={`hover:text-primary transition-colors cursor-pointer relative pb-1 ${
+                    isActive ? "text-primary" : ""
                   }`}
                 >
                   {cat.replace("-", " ")}
                   {isActive && (
-                    <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-[#003366]" />
+                    <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-primary" />
                   )}
                 </button>
               );
@@ -151,15 +151,16 @@ export function GallerySection() {
             <div
               key={film.id}
               onClick={() => setActiveImage(film.src)}
-              className={`group relative rounded-2xl overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.06)] hover:shadow-[0_25px_65px_rgba(0,51,102,0.12)] hover:scale-[1.01] transition-all duration-500 cursor-pointer bg-[#080808] ${film.gridClass}`}
+              className={`group relative rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.01] transition-all duration-500 cursor-pointer bg-[#080808] ${film.gridClass}`}
             >
               {/* Cover Image Plate */}
               <Image
+                unoptimized
                 src={film.src}
                 alt={film.title}
                 fill
                 className="object-cover transition-transform duration-1000 group-hover:scale-103"
-                sizes="(max-w-768px) 100vw, 33vw"
+                sizes="(max-width: 768px) 100vw, 33vw"
               />
               {/* Subtle dark layout contrast vignette */}
               <div className="absolute inset-0 bg-black/15 group-hover:bg-black/35 transition-colors duration-500" />
