@@ -19,11 +19,16 @@ interface PackageItem {
 export async function PackagesSection() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('bundled_packages')
-    .select('*')
-    .eq('active', true)
-    .order('created_at', { ascending: true });
+  // supabase is null when the env vars aren't configured — fall through to
+  // the section's existing "No packages currently available" empty state
+  // instead of crashing the page.
+  const { data } = supabase
+    ? await supabase
+        .from('bundled_packages')
+        .select('*')
+        .eq('active', true)
+        .order('created_at', { ascending: true })
+    : { data: null };
 
   const packages: PackageItem[] = data ? data.map((item, index) => ({
     id: String(index + 1).padStart(2, '0'),

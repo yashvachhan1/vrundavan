@@ -31,16 +31,24 @@ export default function CustomPlanBuilder() {
   const [discountStatus, setDiscountStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [discountMessage, setDiscountMessage] = useState('');
 
+  // Null when NEXT_PUBLIC_SUPABASE_URL/ANON_KEY aren't configured. This page
+  // is client-rendered, so Next still runs this during prerender at build
+  // time — createClient() used to throw in that case and take the whole
+  // build down with it, so it now degrades to null instead.
   const supabase = createClient();
 
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   React.useEffect(() => {
     async function fetchData() {
+      if (!supabase) {
+        setFetchError("Plan builder is temporarily unavailable. Please try again later.");
+        return;
+      }
       try {
         const { data, error } = await supabase.from('custom_plan_items').select('*').eq('active', true).order('created_at', { ascending: true });
         if (error) throw error;
-        
+
         if (data) {
           setEvents(data.filter(item => item.type === 'event').map(i => ({...i, desc: i.description})));
           setServices(data.filter(item => item.type === 'service').map(i => ({...i, desc: i.description, icon: i.icon === 'video' ? Video : Camera})));
@@ -56,8 +64,13 @@ export default function CustomPlanBuilder() {
 
   const handleApplyDiscount = async () => {
     if (!discountCode) return;
+    if (!supabase) {
+      setDiscountStatus('error');
+      setDiscountMessage('Discount codes are temporarily unavailable.');
+      return;
+    }
     setDiscountStatus('loading');
-    
+
     try {
       const { data, error } = await supabase.from('discount_coupons')
         .select('*')
