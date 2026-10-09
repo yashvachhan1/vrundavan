@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { Play, X, Volume2, VolumeX, Images, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Play, X, Volume2, VolumeX, Images, ChevronLeft, ChevronRight, Download, Plus } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface FilmItem {
   id: number;
@@ -35,28 +36,28 @@ export function GallerySection() {
   const films: FilmItem[] = [
     {
       id: 1,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG",
+      src: "/new_images/18.jpg",
       category: "weddings",
       title: "Royal Union",
       gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 2,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG",
+      src: "/new_images/19.jpg",
       category: "pre-weddings",
       title: "My Home",
       gridClass: "col-span-1 md:col-span-2 h-[450px]",
     },
     {
       id: 3,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg",
+      src: "/new_images/20.jpg",
       category: "pre-weddings",
       title: "Golden Hour",
       gridClass: "col-span-1 md:col-span-2 h-[350px]",
     },
     {
       id: 4,
-      src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg",
+      src: "/new_images/21.jpg",
       category: "films",
       title: "Love Waltz",
       gridClass: "col-span-1 md:col-span-2 h-[350px]",
@@ -138,37 +139,70 @@ export function GallerySection() {
           Every card now displays the signature handwriting calligraphy script title 
           with the rounded gold name pill badge underneath, unified as requested.
         */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+        <motion.div 
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={{
+            hidden: {},
+            show: { transition: { staggerChildren: 0.15 } }
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5"
+        >
+          <AnimatePresence>
           {filteredFilms.map((film) => (
-            <div
+            <motion.div
+              layout
+              variants={{
+                hidden: { opacity: 0, scale: 0.9 },
+                show: { opacity: 1, scale: 1, transition: { duration: 0.5 } }
+              }}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.3 } }}
               key={film.id}
               onClick={() => setActiveImage(film.src)}
-              className={`group relative rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.01] transition-all duration-500 cursor-pointer bg-[#080808] ${film.gridClass}`}
+              className={`group relative rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-700 cursor-pointer bg-[#080808] ${film.gridClass}`}
             >
               {/* Cover Image Plate */}
-              <Image
-                unoptimized
-                src={film.src}
-                alt={film.title}
-                fill
-                className="object-cover transition-transform duration-1000 group-hover:scale-103"
-                sizes="(max-width: 768px) 100vw, 33vw"
-              />
+              <motion.div 
+                whileHover={{ scale: 1.05 }} 
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="w-full h-full relative"
+              >
+                <Image
+                  unoptimized
+                  src={film.src}
+                  alt={film.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+              </motion.div>
+              
               {/* Subtle dark layout contrast vignette */}
-              <div className="absolute inset-0 bg-black/15 group-hover:bg-black/35 transition-colors duration-500" />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/60 transition-colors duration-700" />
+
+              {/* Hover Plus Icon */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-30 pointer-events-none">
+                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center scale-75 group-hover:scale-100 transition-transform duration-700 ease-out">
+                  <Plus className="w-8 h-8 text-white/90" />
+                </div>
+              </div>
 
               {/* Unified Signature Calligraphy Overlay */}
-              <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-20 pointer-events-none">
+              <div className="absolute inset-0 p-8 flex flex-col justify-end text-left z-20 pointer-events-none translate-y-4 group-hover:translate-y-0 transition-transform duration-700">
                 <div className="flex flex-col gap-0 items-start text-white">
-                  <span className="font-script text-5xl sm:text-6xl text-white drop-shadow-md select-none leading-none">
+                  <span className="font-script text-5xl sm:text-6xl text-white drop-shadow-md select-none leading-none opacity-90 group-hover:opacity-100 transition-opacity duration-700">
                     {film.title}
                   </span>
                 </div>
               </div>
 
-            </div>
+            </motion.div>
           ))}
-        </div>
+          </AnimatePresence>
+        </motion.div>
 
       </div>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { MessageSquareQuote, ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TestimonialItem {
   id: number;
@@ -58,14 +59,21 @@ export function TestimonialsSection() {
 
       <div className="max-w-[85vw] md:max-w-[70vw] mx-auto w-full relative z-10">
 
-        <SectionHeader
-          icon={MessageSquareQuote}
-          eyebrow="Love Notes"
-          title="Client"
-          accent="Stories"
-          align="center"
-          className="!mb-8 md:!mb-10"
-        />
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+        >
+          <SectionHeader
+            icon={MessageSquareQuote}
+            eyebrow="Love Notes"
+            title="Client"
+            accent="Stories"
+            align="center"
+            className="!mb-8 md:!mb-10"
+          />
+        </motion.div>
 
         {/*
           Editorial Testimonial Showcase Box:
@@ -75,30 +83,56 @@ export function TestimonialsSection() {
           whenever a quote was short (as most are). A natural gap-based stack
           sizes itself to the content instead.
         */}
-        <div className="relative flex flex-col items-center text-center px-4 sm:px-8 gap-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+          className="relative flex flex-col items-center text-center px-4 sm:px-8 gap-6"
+        >
 
           {/* Quote Sign Icon */}
           <Quote className="w-10 h-10 text-gold/20 fill-gold/10 rotate-180" />
 
           {/* Testimonial Quote - transitions nicely based on index */}
-          <p className="max-w-4xl text-lg sm:text-xl md:text-2xl font-serif font-light italic leading-relaxed text-[#333] transition-all duration-700 select-text">
-            “{testimonials[activeIndex].quote}”
-          </p>
+          <div className="h-[200px] sm:h-[150px] md:h-[120px] flex items-center justify-center w-full">
+            <AnimatePresence mode="wait">
+              <motion.p 
+                key={activeIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.4 }}
+                className="max-w-4xl text-lg sm:text-xl md:text-2xl font-serif font-light italic leading-relaxed text-[#333] select-text"
+              >
+                “{testimonials[activeIndex].quote}”
+              </motion.p>
+            </AnimatePresence>
+          </div>
 
           {/* Couple profile & tags details */}
           <div className="mt-2 flex flex-col items-center gap-4">
 
             {/* Couple Circular Thumbnail Frame */}
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border border-gold/25 shadow-md">
-              <Image
-                unoptimized
-                src={testimonials[activeIndex].image}
-                alt={testimonials[activeIndex].couple}
-                fill
-                className="object-cover"
-                sizes="64px"
-              />
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={activeIndex}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.4 }}
+                className="relative w-16 h-16 rounded-full overflow-hidden border border-gold/25 shadow-md"
+              >
+                <Image
+                  unoptimized
+                  src={testimonials[activeIndex].image}
+                  alt={testimonials[activeIndex].couple}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </motion.div>
+            </AnimatePresence>
 
             <div className="flex flex-col gap-1">
               <h4 className="font-serif text-lg font-bold text-foreground tracking-wide">
@@ -144,7 +178,7 @@ export function TestimonialsSection() {
             </button>
           </div>
 
-        </div>
+        </motion.div>
 
       </div>
     </section>

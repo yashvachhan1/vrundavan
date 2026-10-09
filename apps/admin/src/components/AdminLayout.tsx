@@ -14,6 +14,7 @@ const sidebarLinks = [
   { name: 'Discounts & Coupons', path: '/discounts', icon: ShoppingBag },
   { name: 'Gallery Portfolio', path: '/gallery', icon: ImageIcon },
   { name: 'Video Showcase', path: '/videos', icon: Video },
+  { name: 'Instagram Reels', path: '/reels', icon: Video },
 ];
 
 export default function AdminLayout() {

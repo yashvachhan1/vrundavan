@@ -1,31 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
-import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Phone, Mail, ChevronDown } from 'lucide-react';
-
-const mockOrders = [
-  {
-    id: 'ORD-001',
-    customer: 'Rahul Verma',
-    phone: '+91 98765 43210',
-    email: 'rahul@example.com',
-    package: 'Complete Wedding Package',
-    date: '2026-08-15',
-    status: 'pending',
-    amountPaid: '₹5,000'
-  },
-  {
-    id: 'ORD-002',
-    customer: 'Sneha Patel',
-    phone: '+91 87654 32109',
-    email: 'sneha@example.com',
-    package: 'Pre-Wedding Shoot',
-    date: '2026-08-12',
-    status: 'confirmed',
-    assignedTeam: [] as string[],
-    amountPaid: '₹5,000'
-  }
-];
-
-const mockTeam = ['Rahul Sharma', 'Amit Patel', 'Sanjay Kumar', 'Priya Singh'];
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 // Custom Multi-Select Dropdown Component
 function MultiSelectDropdown({ options, selected, onChange }: { options: string[], selected: string[], onChange: (selected: string[]) => void }) {
@@ -94,17 +69,176 @@ function MultiSelectDropdown({ options, selected, onChange }: { options: string[
   );
 }
 
-export default function Orders() {
-  const [activeTab, setActiveTab] = useState<'pending' | 'confirmed'>('pending');
-  const [orders, setOrders] = useState(mockOrders);
+interface Order {
+  id: string;
+  customer: string;
+  package: string;
+  date: string;
+  email: string;
+  phone: string;
+  assignedTeam?: string[];
+  payment_screenshot_url?: string;
+  total_amount?: number;
+  amountPaid?: string | number;
+  [key: string]: unknown;
+}
 
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const confirmedOrders = orders.filter(o => o.status === 'confirmed');
+interface TeamMember {
+  id: string;
+  name: string;
+  phone: string;
+  role: string;
+  [key: string]: unknown;
+}
+
+export default function Orders() {
+  const [activeTab, setActiveTab] = useState<'pending_payment' | 'pending' | 'confirmed'>('pending');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [teamMessages, setTeamMessages] = useState<Record<string, string>>({});
+  const [emailMessages, setEmailMessages] = useState<Record<string, string>>({});
+  const [payoutAmounts, setPayoutAmounts] = useState<Record<string, string>>({});
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+
+  const toggleOrderExpansion = (orderId: string) => {
+    setExpandedOrders(prev => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    const [ordersRes, teamRes] = await Promise.all([
+      supabase.from('orders').select('*').order('created_at', { ascending: false }),
+      supabase.from('team_members').select('*')
+    ]);
+    
+    if (ordersRes.data) setOrders(ordersRes.data);
+    if (teamRes.data) setTeamMembers(teamRes.data);
+    setIsLoading(false);
+  };
+
+  const teamNames = useMemo(() => teamMembers.map(m => m.name), [teamMembers]);
+  const awaitingOrders = useMemo(() => orders.filter(o => o.status === 'pending_payment'), [orders]);
+  const pendingOrders = useMemo(() => orders.filter(o => o.status === 'pending'), [orders]);
+  const confirmedOrders = useMemo(() => orders.filter(o => o.status === 'confirmed'), [orders]);
+
+  const updateOrderInDb = async (orderId: string, updates: Record<string, unknown>) => {
+    try {
+      await supabase.from('orders').update(updates).eq('id', orderId);
+    } catch (err) {
+      console.error("Error updating order:", err);
+    }
+  };
+
+  const handleSendEmail = (order: Order, type: string, customMessage?: string) => {
+    fetch('http://localhost:3000/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, order, customMessage })
+    }).then(async res => {
+      const data = await res.json();
+      if (data.success && data.details && data.details.email) {
+        alert("Email sent successfully!");
+      } else {
+        alert("Failed to send email. Please ensure your Gmail App Password is set in .env.local.");
+      }
+    }).catch(e => {
+      console.error(e);
+      alert("Network error. Is the server running?");
+    });
+  };
 
   const handleAssignTeam = (orderId: string, newTeam: string[]) => {
     setOrders(orders.map(order => 
       order.id === orderId ? { ...order, assignedTeam: newTeam } : order
     ));
+    updateOrderInDb(orderId, { assignedTeam: newTeam });
+  };
+
+  const handleNotifyTeamMember = (order: Order, memberName: string) => {
+    const member = teamMembers.find(m => m.name === memberName);
+    if (!member || !member.phone) {
+      alert("No phone number found for this member.");
+      return;
+    }
+    
+    const messageKey = `${order.id}-${memberName}`;
+    const customMessage = teamMessages[messageKey] || `You have been assigned to order #${order.id}.`;
+    
+    fetch('http://localhost:3000/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        type: 'team_assignment', 
+        order: order,
+        customMessage: customMessage,
+        teamPhones: [member.phone]
+      })
+    }).then(res => {
+       if (res.ok) alert(`Message sent to ${memberName}!`);
+       else alert(`Failed to send message to ${memberName}.`);
+    }).catch(e => {
+       console.error("Notification failed", e);
+       alert("Network error.");
+    });
+  };
+
+  const handleSavePayout = async (order: Order, memberName: string) => {
+    const member = teamMembers.find(m => m.name === memberName);
+    if (!member) return;
+    
+    const amountKey = `${order.id}-${memberName}`;
+    const amount = Number(payoutAmounts[amountKey] || 0);
+    
+    if (amount <= 0) {
+      alert("Please enter a valid payout amount.");
+      return;
+    }
+    
+    try {
+      const { error } = await supabase.from('team_payouts').insert([{
+        member_id: member.id,
+        order_id: order.id,
+        client: order.customer,
+        date: order.date,
+        amount: amount,
+        status: 'pending'
+      }]);
+      
+      if (error) throw error;
+      alert(`Payout of ₹${amount} saved for ${memberName}!`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(`Error saving payout: ${errorMsg}`);
+    }
+  };
+
+  const handleStatusUpdate = async (order: Order, newStatus: string) => {
+    setProcessingOrderId(order.id);
+    try {
+      await updateOrderInDb(order.id, { status: newStatus });
+
+      if (newStatus === 'confirmed') {
+        const apiUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:3000';
+        await fetch(`${apiUrl}/api/notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'order_confirmed_invoice', order: { ...order, status: newStatus } })
+        }).catch(e => console.error("Failed to send invoice notification", e));
+      }
+
+      setOrders(orders.map(o => 
+        o.id === order.id ? { ...o, status: newStatus } : o
+      ));
+    } finally {
+      setProcessingOrderId(null);
+    }
   };
 
   return (
@@ -115,10 +249,20 @@ export default function Orders() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-gray-200">
+      <div className="flex gap-4 border-b border-gray-200 overflow-x-auto hide-scrollbar">
+        <button 
+          onClick={() => setActiveTab('pending_payment')}
+          className={`pb-4 px-2 font-bold text-sm transition-all relative whitespace-nowrap ${
+            activeTab === 'pending_payment' ? 'text-[#003366]' : 'text-gray-400 hover:text-gray-900'
+          }`}
+        >
+          Awaiting Payment
+          <span className={`ml-2 py-0.5 px-2 rounded-full text-xs font-bold ${activeTab === 'pending_payment' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>{awaitingOrders.length}</span>
+          {activeTab === 'pending_payment' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#003366] rounded-t-full shadow-[0_-2px_10px_rgba(0,51,102,0.5)]"></div>}
+        </button>
         <button 
           onClick={() => setActiveTab('pending')}
-          className={`pb-4 px-2 font-bold text-sm transition-all relative ${
+          className={`pb-4 px-2 font-bold text-sm transition-all relative whitespace-nowrap ${
             activeTab === 'pending' ? 'text-[#003366]' : 'text-gray-400 hover:text-gray-900'
           }`}
         >
@@ -128,7 +272,7 @@ export default function Orders() {
         </button>
         <button 
           onClick={() => setActiveTab('confirmed')}
-          className={`pb-4 px-2 font-bold text-sm transition-all relative ${
+          className={`pb-4 px-2 font-bold text-sm transition-all relative whitespace-nowrap ${
             activeTab === 'confirmed' ? 'text-[#003366]' : 'text-gray-400 hover:text-gray-900'
           }`}
         >
@@ -140,60 +284,266 @@ export default function Orders() {
 
       {/* Orders List */}
       <div className="space-y-5">
-        {(activeTab === 'pending' ? pendingOrders : confirmedOrders).map(order => (
-          <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 flex flex-col xl:flex-row gap-6 hover:shadow-lg transition-shadow">
+        {isLoading ? (
+           <div className="bg-white rounded-2xl border border-gray-100 p-16 flex flex-col items-center justify-center text-center mt-8">
+             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+               <div className="w-6 h-6 border-4 border-[#003366] border-t-transparent rounded-full animate-spin"></div>
+             </div>
+             <h3 className="text-lg font-bold text-gray-900">Loading Orders...</h3>
+             <p className="text-gray-500 text-sm mt-1">Fetching the latest data from the database.</p>
+           </div>
+        ) : orders.length === 0 ? (
+           <div className="bg-white rounded-2xl border border-gray-100 p-16 flex flex-col items-center justify-center text-center mt-8">
+             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+               <Check className="w-8 h-8 text-gray-300" />
+             </div>
+             <h3 className="text-lg font-bold text-gray-900">No orders found</h3>
+             <p className="text-gray-500 text-sm mt-1">There are no orders in this category.</p>
+           </div>
+        ) : (activeTab === 'pending_payment' ? awaitingOrders : activeTab === 'pending' ? pendingOrders : confirmedOrders).length === 0 ? (
+           <div className="bg-white rounded-2xl border border-gray-100 p-16 flex flex-col items-center justify-center text-center mt-8">
+             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+               <Check className="w-8 h-8 text-gray-300" />
+             </div>
+             <h3 className="text-lg font-bold text-gray-900">No {activeTab.replace('_', ' ')} orders</h3>
+             <p className="text-gray-500 text-sm mt-1">You are all caught up!</p>
+           </div>
+        ) : (activeTab === 'pending_payment' ? awaitingOrders : activeTab === 'pending' ? pendingOrders : confirmedOrders).map(order => (
+          <div key={order.id} className="bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 hover:shadow-lg transition-shadow">
             
-            {/* Customer Details */}
-            <div className="flex-1 space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{order.customer}</h3>
-                  <p className="text-[#003366] font-bold text-xs uppercase tracking-wider mt-1">{order.package}</p>
+            <div className="flex flex-col xl:flex-row gap-6">
+              {/* Customer Details */}
+              <div className="flex-1 space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">{order.customer}</h3>
+                    <p className="text-[#003366] font-bold text-xs uppercase tracking-wider mt-1">{order.package}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase tracking-widest">{order.id}</span>
+                    <div className="flex gap-2 items-center flex-wrap justify-end">
+                      {order.total_amount && (
+                        <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
+                          Total: ₹{Number(order.total_amount).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                      {order.amountPaid && (
+                        <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                          Advance: ₹{Number(order.amountPaid).toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase tracking-widest">{order.id}</span>
+                
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600 font-medium">
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><CalendarIcon className="w-4 h-4 text-[#003366]" /> {order.date}</div>
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><Mail className="w-4 h-4 text-[#003366]" /> {order.email}</div>
+                  
+                  {/* Chat on WhatsApp Button */}
+                  <button
+                    onClick={() => {
+                      const phoneRaw = order.phone || '';
+                      let formatted = phoneRaw.replace(/\D/g, '');
+                      if (formatted.length === 10) formatted = '91' + formatted; // Assuming India default
+                      const message = encodeURIComponent(`Hi ${order.customer}, I am reaching out regarding your Vrundavan booking for the ${order.package} package...`);
+                      window.open(`https://wa.me/${formatted}?text=${message}`, '_blank');
+                    }}
+                    className="flex items-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#128C7E] px-3 py-2 rounded-lg border border-[#25D366]/30 transition-colors font-bold cursor-pointer shadow-sm"
+                  >
+                    <MessageCircle className="w-4 h-4" /> 
+                    <span className="hidden sm:inline">Chat on WhatsApp: </span>{order.phone}
+                  </button>
+                </div>
               </div>
-              
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600 font-medium">
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"><CalendarIcon className="w-4 h-4 text-[#003366]" /> {order.date}</div>
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"><Phone className="w-4 h-4 text-[#003366]" /> {order.phone}</div>
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"><Mail className="w-4 h-4 text-[#003366]" /> {order.email}</div>
-              </div>
-            </div>
 
-            {/* Payment & Actions */}
-            <div className="flex flex-col sm:flex-row xl:flex-col justify-center items-center xl:items-end gap-4 border-t xl:border-t-0 xl:border-l border-gray-100 pt-6 xl:pt-0 xl:pl-8 w-full xl:w-[320px] shrink-0">
+              {/* Payment & Actions */}
+              <div className="flex flex-col sm:flex-row xl:flex-col justify-center items-center xl:items-end gap-4 border-t xl:border-t-0 xl:border-l border-gray-100 pt-6 xl:pt-0 xl:pl-8 w-full xl:w-[320px] shrink-0">
               
-              {activeTab === 'pending' ? (
+              {activeTab === 'pending_payment' ? (
+                <div className="w-full space-y-3">
+                  <div className="bg-amber-50 text-amber-600 border border-amber-200/50 px-5 py-3 rounded-xl text-sm font-bold w-full text-center shadow-sm">
+                    Waiting for customer payment
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleStatusUpdate(order, 'confirmed')}
+                      disabled={processingOrderId === order.id}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2 rounded-xl text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20"
+                    >
+                      {processingOrderId === order.id ? 'Processing...' : 'Payment Received'}
+                    </button>
+                    <button 
+                      onClick={() => handleSendEmail(order, 'payment_reminder')}
+                      className="flex-1 bg-white hover:bg-amber-50 text-amber-600 border border-amber-200 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                    >
+                      Send Email Reminder
+                    </button>
+                  </div>
+                </div>
+              ) : activeTab === 'pending' ? (
                 <>
-                  <button className="flex items-center gap-2 text-[#003366] bg-[#003366]/5 border border-[#003366]/20 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#003366]/10 transition-colors w-full sm:w-auto xl:w-full justify-center shadow-sm">
+                  <button 
+                    onClick={() => {
+                      if (order.payment_screenshot_url) {
+                        window.open(order.payment_screenshot_url, '_blank');
+                      } else {
+                        alert("No payment screenshot uploaded for this order.");
+                      }
+                    }}
+                    className="flex items-center gap-2 text-[#003366] bg-[#003366]/5 border border-[#003366]/20 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#003366]/10 transition-colors w-full sm:w-auto xl:w-full justify-center shadow-sm"
+                  >
                     <ImageIcon className="w-4 h-4" /> View Payment Screenshot
                   </button>
                   <div className="flex gap-3 w-full">
-                    <button className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/20 px-4 py-2.5 rounded-xl text-sm font-bold transition-all">
-                      <Check className="w-4 h-4" strokeWidth={3} /> Approve
+                    <button 
+                      onClick={() => handleStatusUpdate(order, 'confirmed')}
+                      disabled={processingOrderId === order.id}
+                      className="flex-1 flex justify-center items-center gap-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2 rounded-xl font-bold text-sm transition-colors shadow-sm shadow-emerald-500/20"
+                    >
+                      <Check className="w-4 h-4" strokeWidth={3} /> {processingOrderId === order.id ? 'Processing...' : 'Approve'}
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white border border-red-100 hover:border-red-600 px-4 py-2.5 rounded-xl text-sm font-bold transition-all">
-                      <X className="w-4 h-4" strokeWidth={3} /> Reject
+                    <button 
+                      onClick={() => handleStatusUpdate(order, 'pending_payment')}
+                      disabled={processingOrderId === order.id}
+                      className="flex-1 flex justify-center items-center gap-2 bg-red-50 hover:bg-red-100 disabled:opacity-70 disabled:cursor-not-allowed text-red-600 py-2 rounded-xl font-bold text-sm transition-colors border border-red-100"
+                    >
+                      <X className="w-4 h-4" strokeWidth={3} /> {processingOrderId === order.id ? 'Processing...' : 'Reject'}
                     </button>
                   </div>
                 </>
               ) : (
-                <>
-                  <div className="w-full relative">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Assign Team Members (Multiple)</label>
+                <div className="w-full space-y-3">
+                  <div className="w-full bg-emerald-50 text-emerald-700 px-4 rounded-xl text-sm font-bold text-center border border-emerald-100 shadow-sm flex items-center justify-center gap-2 h-[42px]">
+                    <Check className="w-4 h-4" strokeWidth={3} /> Order Confirmed
+                  </div>
+                  
+                  {order.date && (
+                    <button 
+                      onClick={() => {
+                        const dateObj = new Date(order.date);
+                        // Format to YYYYMMDD
+                        const formattedDate = dateObj.toISOString().split('T')[0].replace(/-/g, '');
+                        // Add 2 hours for a default block
+                        const endDate = new Date(dateObj.getTime() + 2 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+                        
+                        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Vrundavan Booking: ' + order.customer)}&dates=${formattedDate}/${endDate}&details=${encodeURIComponent('Package: ' + order.package + '\nClient: ' + order.customer + '\nPhone: ' + order.phone)}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-4 py-2 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                    >
+                      <CalendarPlus className="w-4 h-4" /> Add to Google Calendar
+                    </button>
+                  )}
+
+                  <button 
+                    onClick={() => toggleOrderExpansion(order.id)}
+                    className="w-full bg-gray-50 hover:bg-gray-100 text-[#003366] border border-gray-200 px-4 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm h-[42px]"
+                  >
+                    {expandedOrders[order.id] ? 'Close Manager' : 'Manage Team & Email'}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedOrders[order.id] ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+              )}
+              </div>
+            </div>
+
+            {/* Confirmed Orders Extended Layout */}
+            {activeTab === 'confirmed' && expandedOrders[order.id] && (
+              <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-top-2 fade-in duration-200">
+                
+                {/* Left Side: Team Assignment */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Assign Team Members (Multiple)</label>
                     <MultiSelectDropdown 
-                      options={mockTeam} 
+                      options={teamNames} 
                       selected={order.assignedTeam || []} 
                       onChange={(newTeam) => handleAssignTeam(order.id, newTeam)} 
                     />
                   </div>
-                  <div className="w-full bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl text-xs font-bold text-center border border-emerald-100 flex items-center justify-center gap-1.5 mt-2">
-                    <Check className="w-3.5 h-3.5" strokeWidth={3} /> Order Confirmed
-                  </div>
-                </>
-              )}
+                  
+                  {order.assignedTeam && order.assignedTeam.length > 0 && (
+                    <div className="space-y-3 mt-2">
+                      <label className="block text-[10px] font-bold text-[#003366] uppercase tracking-widest">Manage Team Members</label>
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                        {order.assignedTeam.map((memberName: string) => {
+                           const msgKey = `${order.id}-${memberName}`;
+                           const amtKey = `${order.id}-${memberName}`;
+                           const memberObj = teamMembers.find(m => m.name === memberName);
+                           
+                           return (
+                             <div key={memberName} className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-3 flex flex-col">
+                               <div className="flex justify-between items-center">
+                                 <span className="text-xs font-bold text-gray-900">{memberName}</span>
+                                 <span className="text-[10px] font-medium text-gray-400">{memberObj?.phone || 'No number'}</span>
+                               </div>
+                               
+                               <div className="flex items-center gap-2">
+                                 <span className="text-xs font-bold text-gray-500">₹</span>
+                                 <input 
+                                   type="number"
+                                   placeholder="Payout Amount"
+                                   value={payoutAmounts[amtKey] || ''}
+                                   onChange={e => setPayoutAmounts({...payoutAmounts, [amtKey]: e.target.value})}
+                                   className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:border-[#003366]"
+                                 />
+                                 <button 
+                                   onClick={() => handleSavePayout(order, memberName)}
+                                   className="shrink-0 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-1.5 rounded-lg border border-emerald-100 transition-colors"
+                                   title="Save Payout to Ledger"
+                                 >
+                                   <Save className="w-4 h-4" />
+                                 </button>
+                               </div>
 
-            </div>
+                               <textarea
+                                 value={teamMessages[msgKey] || ''}
+                                 onChange={(e) => setTeamMessages({ ...teamMessages, [msgKey]: e.target.value })}
+                                 placeholder={`Instructions for ${memberName}...`}
+                                 className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 bg-white focus:outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] min-h-[50px] resize-none"
+                               />
+                               
+                               <button 
+                                 onClick={() => handleNotifyTeamMember(order, memberName)}
+                                 className="w-full bg-[#003366] hover:bg-[#002244] text-white py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 mt-auto"
+                               >
+                                 <MessageCircle className="w-3.5 h-3.5" /> Send Message
+                               </button>
+                             </div>
+                           );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Side: Email Customer Section */}
+                <div className="space-y-3 lg:border-l lg:border-gray-100 lg:pl-8">
+                  <label className="block text-[10px] font-bold text-[#003366] uppercase tracking-widest">Email Customer Update</label>
+                  <div className="bg-[#003366]/5 p-4 rounded-xl border border-[#003366]/10 space-y-3 h-[calc(100%-24px)] flex flex-col">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-gray-900">{order.customer}</span>
+                      <span className="text-xs font-medium text-gray-500">{order.email}</span>
+                    </div>
+                    <textarea
+                      value={emailMessages[order.id] || ''}
+                      onChange={(e) => setEmailMessages({ ...emailMessages, [order.id]: e.target.value })}
+                      placeholder="Type update message (e.g. 'We received your partial payment!')..."
+                      className="w-full text-sm border border-gray-200 rounded-xl px-3 py-3 bg-white focus:outline-none focus:border-[#003366] focus:ring-1 focus:ring-[#003366] flex-1 min-h-[100px] resize-none"
+                    />
+                    <button 
+                      onClick={() => handleSendEmail(order, 'order_update', emailMessages[order.id])}
+                      className="w-full bg-[#003366] hover:bg-[#002244] text-white py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 mt-auto shadow-sm"
+                    >
+                      <Mail className="w-4 h-4" /> Send Email Update
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
         ))}
 

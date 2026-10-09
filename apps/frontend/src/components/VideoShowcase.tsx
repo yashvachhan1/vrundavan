@@ -112,11 +112,11 @@ export function VideoShowcase() {
       const video = videoRefs.current[idx];
       if (!video) return;
       if (idx === currentIndex) {
-        video.currentTime = 0;
+        // We no longer auto-play when active. The user must manually click.
         video.muted = mutedRef.current;
-        video.play().catch(() => {});
       } else {
         video.pause();
+        video.load(); // Reset video completely so the poster image reappears
         video.muted = true;
       }
     });
@@ -395,8 +395,7 @@ export function VideoShowcase() {
                 }}
                 src={film.videoSrc}
                 poster={film.poster}
-                preload={isActive ? "auto" : "none"}
-                autoPlay={isActive}
+                preload="metadata"
                 muted
                 playsInline
                 onEnded={nextSlide}

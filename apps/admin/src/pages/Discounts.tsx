@@ -16,6 +16,7 @@ export default function Discounts() {
   const [error, setError] = useState<string | null>(null);
   
   const [isAdding, setIsAdding] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [newCoupon, setNewCoupon] = useState<Partial<DiscountCoupon>>({ discount_type: 'percentage', is_active: true, discount_value: 0 });
 
@@ -144,9 +145,10 @@ export default function Discounts() {
           </div>
           <button 
             onClick={handleAddCoupon}
-            className="bg-amber-500 hover:bg-amber-400 text-black px-6 py-2 rounded-lg font-bold transition-colors"
+            disabled={isSaving}
+            className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black px-6 py-2 rounded-lg font-bold transition-colors"
           >
-            Create Coupon
+            {isSaving ? 'Creating...' : 'Create Coupon'}
           </button>
         </div>
       )}

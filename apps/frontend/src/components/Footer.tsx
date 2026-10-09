@@ -65,7 +65,7 @@ export function Footer() {
               href={STUDIO.instagram}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-gold-soft hover:text-white transition-colors w-fit"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/70 hover:text-white transition-colors w-fit"
             >
               {STUDIO.instagramHandle}
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -111,17 +111,17 @@ export function Footer() {
             </h2>
             <ul className="flex flex-col gap-3 text-sm text-white/70">
               <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-gold-soft flex-shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-white/70 flex-shrink-0 mt-0.5" />
                 <span>{STUDIO.address}</span>
               </li>
               <li className="flex items-start gap-2.5">
-                <Mail className="w-4 h-4 text-gold-soft flex-shrink-0 mt-0.5" />
+                <Mail className="w-4 h-4 text-white/70 flex-shrink-0 mt-0.5" />
                 <a href={`mailto:${STUDIO.email}`} className="hover:text-white transition-colors break-all">
                   {STUDIO.email}
                 </a>
               </li>
               <li className="flex items-start gap-2.5">
-                <Phone className="w-4 h-4 text-gold-soft flex-shrink-0 mt-0.5" />
+                <Phone className="w-4 h-4 text-white/70 flex-shrink-0 mt-0.5" />
                 <a href={STUDIO.phoneHref} className="hover:text-white transition-colors">
                   {STUDIO.phoneLabel}
                 </a>

@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { ArrowRight, Aperture, Compass, Eye, Film, User } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { motion } from "framer-motion";
 
 export function ServicesSection() {
   const services = [
@@ -13,7 +14,7 @@ export function ServicesSection() {
       scriptLabel: "Vivah Stories",
       lens: "85mm f/1.4",
       desc: "Bespoke architectural wedding narratives documented across global heritage destinations.",
-      img: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/services_destination.png",
+      img: "/new_images/14.jpg",
       icon: Compass,
       href: "#contact",
     },
@@ -23,7 +24,7 @@ export function ServicesSection() {
       scriptLabel: "Love in Motion",
       lens: "35mm f/1.2",
       desc: "Poetic, unscripted coupling stories captured in organic natural golden lighting.",
-      img: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/services_pre_wedding.png",
+      img: "/new_images/15.jpg",
       icon: Eye,
       href: "#contact",
     },
@@ -33,7 +34,7 @@ export function ServicesSection() {
       scriptLabel: "Theatrical Cuts",
       lens: "24mm f/1.4",
       desc: "Directorial wedding showreels with custom soundtracks, color grading and dialogues.",
-      img: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/services_cinematic.png",
+      img: "/new_images/16.jpg",
       icon: Film,
       href: "#contact",
     },
@@ -43,7 +44,7 @@ export function ServicesSection() {
       scriptLabel: "Heritage Canvas",
       lens: "50mm f/1.2",
       desc: "Luxury studio lighting and classic staging emphasizing the royalty of character profiles.",
-      img: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/services_portrait.png",
+      img: "/new_images/17.jpg",
       icon: User,
       href: "#contact",
     },
@@ -73,27 +74,47 @@ export function ServicesSection() {
 
       <div className="max-w-[1440px] mx-auto w-full px-6 relative z-10">
         
-        <SectionHeader
-          icon={Aperture}
-          eyebrow="Creative Fields"
-          title="Our Service"
-          accent="Categories"
-        />
 
-        {/* 
-          Borderless Fine-Art Photography Grid:
-          Completely removes cards, borders, and margins around images.
-          Photos stretch full-bleed to their aspect ratios, acting as real gallery frames
-          sitting on a clean white canvas. Text overlays cleanly inside the images.
-        */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {services.map((srv) => {
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8 }}
+        >
+          <SectionHeader
+            icon={Aperture}
+            eyebrow="Creative Fields"
+            title="Our Service"
+            accent="Categories"
+            align="center"
+          />
+        </motion.div>
+
+        {/* Tall Premium Card Grid */}
+        <motion.div 
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={{
+            hidden: {},
+            show: {
+              transition: { staggerChildren: 0.2 }
+            }
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 w-full mt-10 md:mt-14"
+        >
+          {services.map((srv, idx) => {
             const Icon = srv.icon;
+            
             return (
-              <a
-                key={srv.id}
+              <motion.a 
+                variants={{
+                  hidden: { opacity: 0, y: 50 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+                }}
+                key={srv.id} 
                 href={srv.href}
-                className="group relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-md hover:shadow-lg hover:scale-[1.015] transition-all duration-500 cursor-pointer flex flex-col justify-end p-6 text-white"
+                className="group relative h-[480px] md:h-[540px] w-full rounded-2xl overflow-hidden flex flex-col justify-end p-6 bg-[#030814] cursor-pointer"
               >
                 {/* Full-bleed Photo Background */}
                 <div className="absolute inset-0 z-0">
@@ -149,10 +170,10 @@ export function ServicesSection() {
 
                 </div>
 
-              </a>
+              </motion.a>
             );
           })}
-        </div>
+        </motion.div>
 
       </div>
     </section>

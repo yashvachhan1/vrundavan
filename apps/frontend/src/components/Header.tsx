@@ -106,7 +106,13 @@ export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
         </nav>
 
         {/* Right Side: Theme Toggle & Solid Premium CTA */}
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-4">
+          <a
+            href="/custom-plan"
+            className="flex items-center justify-center px-7 py-3 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] border border-white/20 text-white hover:bg-white/10 transition-colors font-sans"
+          >
+            Track Order
+          </a>
           <a
             href="#contact"
             className="flex items-center gap-2.5 px-7 py-3 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] shadow-md transition-all duration-300 hover:scale-[1.03] cursor-pointer font-sans bg-white hover:bg-white/90 text-primary"
@@ -188,11 +194,18 @@ export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
           </div>
 
           {/* Fixed Bottom Action */}
-          <div className="p-6 border-t border-border/20 bg-background">
+          <div className="p-6 border-t border-border/20 bg-background flex flex-col gap-3">
+            <a
+              href="/custom-plan"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-semibold uppercase tracking-[0.15em] border-2 border-primary/20 text-primary text-[11px] font-sans hover:bg-primary/5 transition-colors"
+            >
+              Track Order
+            </a>
             <a
               href="#contact"
               onClick={() => setIsOpen(false)}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-semibold uppercase tracking-[0.2em] bg-primary text-white text-[11px] font-sans shadow-md"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-semibold uppercase tracking-[0.2em] bg-primary text-white text-[11px] font-sans shadow-md"
             >
               <Phone className="w-3.5 h-3.5" />
               Call / Book Shoot

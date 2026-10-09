@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import { ArrowRight, Compass, Camera, Sparkles, Feather } from "lucide-react";
 import { SectionHeader } from "./SectionHeader";
+import { motion } from "framer-motion";
 
 export function AboutSection() {
   const pillars = [
@@ -58,14 +59,20 @@ export function AboutSection() {
       <div className="max-w-[1440px] mx-auto w-full px-6 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center relative z-10">
         
         {/* Left Side: Staggered Dynamic Image Collage with elegant shadows & frames */}
-        <div className="lg:col-span-5 relative w-full h-[580px] flex items-center justify-center">
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="lg:col-span-5 relative w-full h-[580px] flex items-center justify-center"
+        >
           
           {/* Main Large Vertical Image Frame */}
           <div className="relative w-[280px] h-[420px] sm:w-[320px] sm:h-[480px] rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-white transition-transform duration-500 hover:scale-[1.01] hover:shadow-2xl z-10">
             <div className="relative w-full h-full rounded-xl overflow-hidden">
               <Image
                 unoptimized
-                src="https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/about_main.png"
+                src="/new_images/12.jpg"
                 alt="Director's visual choice"
                 fill
                 className="object-cover transition-transform duration-700 hover:scale-105"
@@ -80,7 +87,7 @@ export function AboutSection() {
             <div className="relative w-full h-full rounded-lg overflow-hidden">
               <Image
                 unoptimized
-                src="https://res.cloudinary.com/ujwz0e7r/image/upload/w_600,q_auto,f_auto/about_candid.png"
+                src="/new_images/13.jpg"
                 alt="Candid moment frame"
                 fill
                 className="object-cover"
@@ -104,10 +111,16 @@ export function AboutSection() {
             </div>
           </div>
 
-        </div>
+        </motion.div>
 
         {/* Right Side: Editorial Philosophy Text & 3 Key Pillars */}
-        <div className="lg:col-span-7 flex flex-col justify-center gap-8 text-left relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, x: 50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          className="lg:col-span-7 flex flex-col justify-center gap-8 text-left relative z-10"
+        >
           
           <SectionHeader
             icon={Feather}
@@ -161,7 +174,7 @@ export function AboutSection() {
             </a>
           </div>
 
-        </div>
+        </motion.div>
 
       </div>
     </section>

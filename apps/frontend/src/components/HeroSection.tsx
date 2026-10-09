@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Sparkles, Calendar, Heart } from "lucide-react";
+import { Sparkles, Calendar, Heart, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface ImageCard {
   type: "image";
@@ -23,7 +24,7 @@ type CardItem = ImageCard | TextCard;
 
 export function HeroSection() {
   const col1: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-80" },
+    { type: "image", src: "/new_images/1.jpg", h: "h-80" },
     {
       type: "text",
       title: "VRUNDAVAN",
@@ -32,11 +33,11 @@ export function HeroSection() {
       bgColorClass: "bg-primary text-white",
       icon: "sparkles",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG", h: "h-96" },
+    { type: "image", src: "/new_images/2.jpg", h: "h-96" },
   ];
 
   const col2: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-72" },
+    { type: "image", src: "/new_images/3.jpg", h: "h-72" },
     {
       type: "text",
       title: "4.9 ★ RATING",
@@ -45,11 +46,11 @@ export function HeroSection() {
       bgColorClass: "bg-white text-foreground",
       icon: "heart",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-80" },
+    { type: "image", src: "/new_images/4.jpg", h: "h-80" },
   ];
 
   const col3: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-56" },
+    { type: "image", src: "/new_images/5.jpg", h: "h-56" },
     {
       type: "text",
       title: "LOCATIONS",
@@ -57,11 +58,11 @@ export function HeroSection() {
       h: "h-56",
       bgColorClass: "bg-primary/90 text-white",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00101.JPG", h: "h-96" },
+    { type: "image", src: "/new_images/6.jpg", h: "h-96" },
   ];
 
   const col4: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-56" },
+    { type: "image", src: "/new_images/7.jpg", h: "h-56" },
     {
       type: "text",
       title: "BOOKINGS 2026",
@@ -70,13 +71,13 @@ export function HeroSection() {
       bgColorClass: "bg-white/10 backdrop-blur-md text-white border border-white/20",
       icon: "calendar",
     },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC07552.jpg", h: "h-72" },
+    { type: "image", src: "/new_images/8.jpg", h: "h-72" },
   ];
 
   const col5: CardItem[] = [
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-64" },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC06391.jpg", h: "h-80" },
-    { type: "image", src: "https://res.cloudinary.com/ujwz0e7r/image/upload/w_800,q_auto,f_auto/DSC00362.JPG", h: "h-56" },
+    { type: "image", src: "/new_images/9.jpg", h: "h-64" },
+    { type: "image", src: "/new_images/10.jpg", h: "h-80" },
+    { type: "image", src: "/new_images/11.jpg", h: "h-56" },
   ];
 
   const renderCard = (item: CardItem, idx: number, isDuplicate = false) => {
@@ -95,7 +96,7 @@ export function HeroSection() {
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
-            priority={idx < 2}
+            priority={idx === 0 && !isDuplicate}
             unoptimized
           />
         </div>
@@ -157,9 +158,48 @@ export function HeroSection() {
       `}</style>
 
       {/* Top & Bottom Gradient Overlays */}
-      <div className="absolute top-0 inset-x-0 h-[30vh] bg-gradient-to-b from-[#030814] via-[#030814]/70 to-transparent z-20 pointer-events-none" />
-      {/* Bottom fade blends the dark hero into the white section that follows */}
-      <div className="absolute bottom-0 inset-x-0 h-[30vh] bg-gradient-to-t from-[#030814] via-[#030814]/70 to-transparent z-20 pointer-events-none" />
+      <div className="absolute top-0 inset-x-0 h-[40vh] bg-gradient-to-b from-[#030814] via-[#030814]/80 to-transparent z-20 pointer-events-none" />
+      <div className="absolute bottom-0 inset-x-0 h-[40vh] bg-gradient-to-t from-[#030814] via-[#030814]/90 to-transparent z-20 pointer-events-none" />
+
+      {/* Cinematic Center Text Overlay */}
+      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center pointer-events-none">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+          className="text-center px-4"
+        >
+          <h1 className="text-5xl md:text-7xl lg:text-9xl font-serif text-white tracking-tight drop-shadow-2xl">
+            VRUNDAVAN
+          </h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 1 }}
+            className="text-white/80 mt-4 md:mt-6 text-lg md:text-2xl font-light tracking-widest max-w-2xl mx-auto uppercase"
+          >
+            Organic Cinema & Fine Art Photography
+          </motion.p>
+        </motion.div>
+      </div>
+
+      {/* Scroll Down Indicator */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2, duration: 1 }}
+        className="absolute bottom-12 inset-x-0 z-30 flex justify-center pointer-events-auto"
+      >
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex flex-col items-center gap-2 text-white/50 hover:text-white transition-colors cursor-pointer"
+          onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+        >
+          <span className="text-xs tracking-widest uppercase font-bold">Discover</span>
+          <ChevronDown className="w-5 h-5" />
+        </motion.div>
+      </motion.div>
 
       {/* Tight Grid of columns - full screen width stretching to edges with px-4 matching gap-4 */}
       <div className="w-full max-w-full px-4 h-[110vh] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-10 relative z-10">
