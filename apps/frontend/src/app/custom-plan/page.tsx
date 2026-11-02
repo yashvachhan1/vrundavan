@@ -1,333 +1,629 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { Header } from "@/components/Header";
 import { ContactSection } from "@/components/ContactSection";
 import { CustomDatePicker } from "@/components/CustomDatePicker";
-import { Camera, Video, MonitorPlay, Check, ArrowRight, User, ShieldCheck, Mail, Phone, UploadCloud, FileCheck2, Sparkles, MapPin, Search, LayoutDashboard, Clock, Calendar } from 'lucide-react';
+import {
+  Camera,
+  Video,
+  Sparkles,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Search,
+  Calendar,
+  ShieldCheck,
+  UploadCloud,
+  FileCheck2,
+  Plus,
+  Minus,
+  Layers,
+  Send,
+  ExternalLink,
+  Clock,
+  Tag,
+  SlidersHorizontal,
+  ChevronRight,
+  Award,
+  Lock,
+  Copy,
+  AlertCircle,
+  QrCode
+} from "lucide-react";
+import { createClient } from "../../../utils/supabase/client";
 
-import { createClient } from '../../../utils/supabase/client';
-
-type PlanItem = {
+// Catalog Interface
+interface EventCardData {
   id: string;
-  type: 'event' | 'service' | 'addon';
   name: string;
-  price: number;
-  desc: string;
-  icon: React.ElementType;
-};
+  tagline: string;
+  fullPrice: number;
+  photoPrice: number;
+  videoPrice: number;
+  isStandalone?: boolean; // For Pre-Wedding (flat 15k)
+  description: string;
+  features: string[];
+  image: string;
+}
+
+// Exact Studio Rate Sheet from Vrundavan Studio brochure
+const EVENT_CATALOG: EventCardData[] = [
+  {
+    id: "pre_wedding",
+    name: "Pre-Wedding Shoot",
+    tagline: "Romantic Golden Hour Storytelling",
+    fullPrice: 15000,
+    photoPrice: 15000,
+    videoPrice: 15000,
+    isStandalone: true, // "provading me sirf akela hoga sb mtlb 15 k me"
+    description: "All Couple photo, 10 Days Story, 1 Reel. (+ Travel charge Extra)",
+    features: [
+      "All High-Res Couple Photos",
+      "10 Days Social Media Story Highlights",
+      "1 Signature Instagram Reel",
+      "Couple Color Grading & Retouching",
+      "Travel charge extra depending on location"
+    ],
+    image: "/services_pre_wedding.png"
+  },
+  {
+    id: "engagement",
+    name: "Engagement Ceremony",
+    tagline: "Rings, Joy & Festive Beginnings",
+    fullPrice: 23000,
+    photoPrice: 11500, // 50% split
+    videoPrice: 11500, // 50% split
+    description: "All Photo, Couple photo With grading, Full video, 1 Reel, 1 Story.",
+    features: [
+      "All Photos with Professional Grading",
+      "Dedicated Couple Portrait Session",
+      "Full Traditional Ceremony Video",
+      "1 Highlight Instagram Reel",
+      "1 Curated Story Highlight"
+    ],
+    image: "/DSC06391_comp.jpg"
+  },
+  {
+    id: "wedding",
+    name: "Wedding (Lagna)",
+    tagline: "Sacred Vows, Mandap Rituals & Grandeur",
+    fullPrice: 50000,
+    photoPrice: 25000, // 50% split
+    videoPrice: 25000, // 50% split
+    description: "All Photo, Couple photo With grading, Full video, 1 Reel, 1 Story.",
+    features: [
+      "Complete Rituals Coverage (Hasta Melap, Phera, Vidai)",
+      "All Photos High-Res with Color Grading",
+      "Couple Portraits with Cinematic Lighting",
+      "Full Ceremony Video Film",
+      "1 Signature Wedding Reel",
+      "1 Curated Story"
+    ],
+    image: "/DSC06585.JPG_comp.jpg"
+  },
+  {
+    id: "cinematic_candid",
+    name: "Cinematic / Candid",
+    tagline: "Unscripted Luxury 4K Film & Emotional Moments",
+    fullPrice: 60000,
+    photoPrice: 30000, // 50% split
+    videoPrice: 30000, // 50% split
+    description: "All Photo, Couple photo With grading, 1 Highlight, 1 Teaser(Reel), 4 Story.",
+    features: [
+      "Artistic Candid Photography (Pure natural emotions)",
+      "4K Cinematic Wedding Filmmaking",
+      "All Photos with Advanced Studio Grading",
+      "1 Cinematic Highlight Film (3-5 min)",
+      "1 Teaser Reel for Instagram",
+      "4 High-Impact Stories"
+    ],
+    image: "/services_cinematic.png"
+  },
+  {
+    id: "reception",
+    name: "Reception",
+    tagline: "Evening Glamour, Family Stage & Celebrations",
+    fullPrice: 23000,
+    photoPrice: 11500, // 50% split
+    videoPrice: 11500, // 50% split
+    description: "All Photo, Couple photo With grading, Full video, 1 Story.",
+    features: [
+      "Stage Greetings & Guest Portraits",
+      "All Photos with Color Grading",
+      "Couple Evening Glamour Shoot",
+      "Full Reception Video",
+      "1 Event Story Highlight"
+    ],
+    image: "/DSC06608.JPG_comp.jpg"
+  },
+  {
+    id: "bride_side",
+    name: "Bride Side Coverage",
+    tagline: "Emotional Moments & Dedicated Family Coverage",
+    fullPrice: 23000,
+    photoPrice: 11500, // 50% split
+    videoPrice: 11500, // 50% split
+    description: "All Photo, Full video.",
+    features: [
+      "Exclusive Focus on Bride & Her Family",
+      "All High-Res Ceremony Photos",
+      "Full Ceremony Video Documentation"
+    ],
+    image: "/DSC06846.JPG_comp.jpg"
+  }
+];
+
+
 
 export default function CustomPlanBuilder() {
-  const [EVENTS, setEvents] = useState<PlanItem[]>([]);
-  const [SERVICES, setServices] = useState<PlanItem[]>([]);
-  const [ADDONS, setAddons] = useState<PlanItem[]>([]);
-
-  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-
-  const [discountCode, setDiscountCode] = useState('');
-  const [appliedDiscount, setAppliedDiscount] = useState<{type: 'percentage' | 'flat', value: number} | null>(null);
-  const [discountStatus, setDiscountStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [discountMessage, setDiscountMessage] = useState('');
-
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', date: '', location: '' });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authError, setAuthError] = useState('');
-  const [resumedOrder, setResumedOrder] = useState<any>(null);
-  const [paymentFile, setPaymentFile] = useState<File | null>(null);
-  // Null when NEXT_PUBLIC_SUPABASE_URL/ANON_KEY aren't configured. This page
-  // is client-rendered, so Next still runs this during prerender at build
-  // time — createClient() used to throw in that case and take the whole
-  // build down with it, so it now degrades to null instead.
   const supabase = createClient();
 
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  // Mode: 'builder' | 'tracking'
+  const [activeTab, setActiveTab] = useState<"builder" | "tracking">("builder");
+
+  // Step 1: Package Selection, Step 2: Client & Date Details, Step 3: Advance Payment, Step 4: Confirmed
+  const [step, setStep] = useState(1);
+
+  // Pre-wedding selection (standalone flat 15k)
+  const [includePreWedding, setIncludePreWedding] = useState(false);
+
+  // Event coverage selection: { [eventId]: { photo: boolean, video: boolean } }
+  const [eventSelections, setEventSelections] = useState<
+    Record<string, { photo: boolean; video: boolean }>
+  >({});
+
+
+  // Per-event Drone Coverage (Day based: 10k per day)
+  const [eventDrones, setEventDrones] = useState<Record<string, number>>({});
+  const DRONE_PRICE_PER_DAY = 10000;
+
+  // Discount coupon
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    type: "percentage" | "flat";
+    value: number;
+    code: string;
+  } | null>(null);
+  const [discountStatus, setDiscountStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [discountMessage, setDiscountMessage] = useState("");
+
+  // Client form data
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    date: "",
+    location: "Junagadh"
+  });
+
+  // Tracking & Order states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [quoteId, setQuoteId] = useState<string | null>(null);
+  const [resumedOrder, setResumedOrder] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [paymentPreview, setPaymentPreview] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState("");
+  const [copiedUpi, setCopiedUpi] = useState(false);
   const [bookedDates, setBookedDates] = useState<string[]>([]);
 
-  React.useEffect(() => {
-    async function fetchData() {
-      if (!supabase) {
-        // Use fallback if supabase is not configured
-        setEvents([
-          { id: '1', type: 'event', name: 'Haldi', price: 15000, desc: 'Bright & colorful haldi ceremony coverage', icon: Camera },
-          { id: '2', type: 'event', name: 'Mehendi', price: 20000, desc: 'Intimate mehendi evening with family', icon: Camera },
-          { id: '3', type: 'event', name: 'Wedding', price: 50000, desc: 'Full traditional wedding day coverage', icon: Camera }
-        ]);
-        setServices([
-          { id: '4', type: 'service', name: 'Cinematic Video', price: 80000, desc: '4K cinematic film with drone shots', icon: Video },
-          { id: '5', type: 'service', name: 'Candid Photography', price: 40000, desc: 'Natural unposed moments captured', icon: Camera }
-        ]);
-        setAddons([
-          { id: '6', type: 'addon', name: 'Same Day Edit Video', price: 25000, desc: 'Quick highlight video shown at reception', icon: Video },
-          { id: '7', type: 'addon', name: 'Standard Canvera Album', price: 15000, desc: 'Premium printed 40-page photobook', icon: Camera }
-        ]);
+  // Fetch booked dates from database on mount
+  useEffect(() => {
+    async function fetchBooked() {
+      if (!supabase) return;
+      try {
+        const { data } = await supabase
+          .from("orders")
+          .select("date")
+          .eq("status", "confirmed");
+        if (data) {
+          setBookedDates(data.map((o) => o.date).filter(Boolean));
+        }
+      } catch (err) {
+        console.warn("Could not fetch booked dates:", err);
+      }
+    }
+    fetchBooked();
+  }, [supabase]);
+
+  // Ensure cinematic_candid is never active without wedding
+  useEffect(() => {
+    const isWeddingActive = Boolean(
+      eventSelections["wedding"]?.photo || eventSelections["wedding"]?.video
+    );
+    if (!isWeddingActive) {
+      if (eventSelections["cinematic_candid"]) {
+        setEventSelections((prev) => {
+          const next = { ...prev };
+          delete next["cinematic_candid"];
+          return next;
+        });
+      }
+      if (eventDrones["cinematic_candid"]) {
+        setEventDrones((prev) => {
+          const next = { ...prev };
+          delete next["cinematic_candid"];
+          return next;
+        });
+      }
+    }
+  }, [eventSelections, eventDrones]);
+
+  // Handle Photo / Video toggling for ceremony events
+  const toggleCoverage = (
+    eventId: string,
+    coverageType: "photo" | "video"
+  ) => {
+    // Prevent selecting cinematic without wedding
+    if (eventId === "cinematic_candid") {
+      const isWeddingActive = Boolean(
+        eventSelections["wedding"]?.photo || eventSelections["wedding"]?.video
+      );
+      if (!isWeddingActive) {
+        alert("Please select Wedding (Lagna) first to add Cinematic / Candid coverage.");
         return;
       }
-      try {
-        const { data, error } = await supabase.from('custom_plan_items').select('*').eq('active', true).order('created_at', { ascending: true });
-        if (error) throw error;
+    }
 
-        if (data && data.length > 0) {
-          setEvents(data.filter(item => item.type === 'event').map(i => ({...i, desc: i.description})));
-          setServices(data.filter(item => item.type === 'service').map(i => ({...i, desc: i.description, icon: i.icon === 'video' ? Video : Camera})));
-          setAddons(data.filter(item => item.type === 'addon').map(i => ({...i, desc: i.description})));
-        } else {
-          throw new Error('No data found');
-        }
+    setEventSelections((prev) => {
+      const current = prev[eventId] || { photo: false, video: false };
+      const updated = {
+        ...current,
+        [coverageType]: !current[coverageType]
+      };
 
-        // Fetch booked dates
-        const { data: ordersData, error: ordersError } = await supabase.from('orders').select('date').eq('status', 'confirmed');
-        if (!ordersError && ordersData) {
-           setBookedDates(ordersData.map(o => o.date).filter(Boolean));
+      const nextState = { ...prev };
+
+      // If both unchecked, remove from selections
+      if (!updated.photo && !updated.video) {
+        delete nextState[eventId];
+        // If wedding is turned off, also remove cinematic_candid
+        if (eventId === "wedding") {
+          delete nextState["cinematic_candid"];
         }
-      } catch (err: any) {
-        console.error("Using fallback data due to:", err);
-        // Fallback data
-        setEvents([
-          { id: '1', type: 'event', name: 'Haldi', price: 15000, desc: 'Bright & colorful haldi ceremony coverage', icon: Camera },
-          { id: '2', type: 'event', name: 'Mehendi', price: 20000, desc: 'Intimate mehendi evening with family', icon: Camera },
-          { id: '3', type: 'event', name: 'Wedding', price: 50000, desc: 'Full traditional wedding day coverage', icon: Camera }
-        ]);
-        setServices([
-          { id: '4', type: 'service', name: 'Cinematic Video', price: 80000, desc: '4K cinematic film with drone shots', icon: Video },
-          { id: '5', type: 'service', name: 'Candid Photography', price: 40000, desc: 'Natural unposed moments captured', icon: Camera }
-        ]);
-        setAddons([
-          { id: '6', type: 'addon', name: 'Same Day Edit Video', price: 25000, desc: 'Quick highlight video shown at reception', icon: Video },
-          { id: '7', type: 'addon', name: 'Standard Canvera Album', price: 15000, desc: 'Premium printed 40-page photobook', icon: Camera }
-        ]);
+        return nextState;
+      }
+
+      nextState[eventId] = updated;
+      return nextState;
+    });
+  };
+
+  // Toggle both photo and video at once
+  const toggleBoth = (eventId: string) => {
+    // Prevent selecting cinematic without wedding
+    if (eventId === "cinematic_candid") {
+      const isWeddingActive = Boolean(
+        eventSelections["wedding"]?.photo || eventSelections["wedding"]?.video
+      );
+      if (!isWeddingActive) {
+        alert("Please select Wedding (Lagna) first to add Cinematic / Candid coverage.");
+        return;
       }
     }
-    fetchData();
-  }, []);
 
+    setEventSelections((prev) => {
+      const current = prev[eventId];
+      const nextState = { ...prev };
+      if (current && current.photo && current.video) {
+        // Turn off
+        delete nextState[eventId];
+        // If wedding is turned off, also remove cinematic_candid
+        if (eventId === "wedding") {
+          delete nextState["cinematic_candid"];
+        }
+        return nextState;
+      }
+      // Turn both on
+      nextState[eventId] = { photo: true, video: true };
+      return nextState;
+    });
+  };
+
+
+
+  // Dynamic Price Calculation
+  const { subtotal, total, discountAmount, droneTotal, selectedItemsList } =
+    useMemo(() => {
+      let calcSubtotal = 0;
+      const items: { label: string; price: number; type: string }[] = [];
+
+      // 1. Pre-wedding
+      if (includePreWedding) {
+        const pw = EVENT_CATALOG.find((e) => e.id === "pre_wedding")!;
+        calcSubtotal += pw.fullPrice;
+        items.push({
+          label: "Pre-Wedding Shoot (Couple Photos + 10D Story + 1 Reel)",
+          price: pw.fullPrice,
+          type: "Pre-Wedding"
+        });
+
+        // Pre-wedding drone
+        if (eventDrones["pre_wedding"] && eventDrones["pre_wedding"] > 0) {
+          const dDays = eventDrones["pre_wedding"];
+          const dPrice = dDays * DRONE_PRICE_PER_DAY;
+          calcSubtotal += dPrice;
+          items.push({
+            label: `Pre-Wedding: Drone Aerial Coverage (${dDays} Day${dDays > 1 ? "s" : ""})`,
+            price: dPrice,
+            type: "Drone"
+          });
+        }
+      }
+
+      // 2. Ceremonies
+      Object.entries(eventSelections).forEach(([evId, cov]) => {
+        const ev = EVENT_CATALOG.find((e) => e.id === evId);
+        if (!ev) return;
+
+        if (cov.photo && cov.video) {
+          calcSubtotal += ev.fullPrice;
+          items.push({
+            label: `${ev.name} (Photo + Video)`,
+            price: ev.fullPrice,
+            type: "Ceremony"
+          });
+        } else if (cov.photo) {
+          calcSubtotal += ev.photoPrice;
+          items.push({
+            label: `${ev.name} (Photography Only)`,
+            price: ev.photoPrice,
+            type: "Photography"
+          });
+        } else if (cov.video) {
+          calcSubtotal += ev.videoPrice;
+          items.push({
+            label: `${ev.name} (Videography Only)`,
+            price: ev.videoPrice,
+            type: "Videography"
+          });
+        }
+
+        // In-ceremony drone
+        if (eventDrones[evId] && eventDrones[evId] > 0) {
+          const dDays = eventDrones[evId];
+          const dPrice = dDays * DRONE_PRICE_PER_DAY;
+          calcSubtotal += dPrice;
+          items.push({
+            label: `${ev.name}: Drone Coverage (${dDays} Day${dDays > 1 ? "s" : ""})`,
+            price: dPrice,
+            type: "Drone"
+          });
+        }
+      });
+
+      // Total drone aggregate
+      let dTotal = 0;
+      Object.values(eventDrones).forEach((days) => {
+        dTotal += (days || 0) * DRONE_PRICE_PER_DAY;
+      });
+
+      // Discount
+      let disc = 0;
+      if (appliedDiscount) {
+        if (appliedDiscount.type === "percentage") {
+          disc = Math.round(calcSubtotal * (appliedDiscount.value / 100));
+        } else {
+          disc = Math.min(calcSubtotal, appliedDiscount.value);
+        }
+      }
+
+      const finalTotal = Math.max(0, calcSubtotal - disc);
+
+      return {
+        subtotal: calcSubtotal,
+        total: finalTotal,
+        discountAmount: disc,
+        droneTotal: dTotal,
+        selectedItemsList: items
+      };
+    }, [
+      includePreWedding,
+      eventSelections,
+      eventDrones,
+      appliedDiscount
+    ]);
+
+  // Handle Discount Application
   const handleApplyDiscount = async () => {
-    if (!discountCode) return;
-    if (!supabase) {
-      setDiscountStatus('error');
-      setDiscountMessage('Discount codes are temporarily unavailable.');
+    if (!discountCode.trim()) return;
+    setDiscountStatus("loading");
+
+    const codeUpper = discountCode.trim().toUpperCase();
+
+    // Built-in discount fallback for high responsiveness
+    if (codeUpper === "SUMMER20") {
+      setAppliedDiscount({ type: "percentage", value: 20, code: "SUMMER20" });
+      setDiscountStatus("success");
+      setDiscountMessage("20% OFF Applied successfully!");
       return;
     }
-    setDiscountStatus('loading');
+    if (codeUpper === "FLAT5000") {
+      setAppliedDiscount({ type: "flat", value: 5000, code: "FLAT5000" });
+      setDiscountStatus("success");
+      setDiscountMessage("₹5,000 Flat Discount Applied!");
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.from('discount_coupons')
-        .select('*')
-        .ilike('code', discountCode)
-        .eq('is_active', true)
-        .single();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("discount_coupons")
+          .select("*")
+          .ilike("code", codeUpper)
+          .eq("is_active", true)
+          .single();
 
-      if (error || !data) {
-        throw new Error('Invalid or expired coupon code.');
+        if (data && !error) {
+          setAppliedDiscount({
+            type: data.discount_type,
+            value: Number(data.discount_value),
+            code: data.code
+          });
+          setDiscountStatus("success");
+          setDiscountMessage(
+            `${data.discount_type === "percentage" ? data.discount_value + "% OFF" : "₹" + data.discount_value + " OFF"} Applied!`
+          );
+          return;
+        }
       }
-      
-      setDiscountStatus('success');
-      setDiscountMessage(`${data.discount_type === 'percentage' ? data.discount_value + '% OFF' : '₹' + data.discount_value + ' OFF'} Applied!`);
-      setAppliedDiscount({ type: data.discount_type, value: data.discount_value });
-      
+      throw new Error("Invalid or expired coupon code.");
     } catch (err: any) {
-      setDiscountStatus('error');
-      setDiscountMessage(err.message || 'Error applying coupon.');
+      setDiscountStatus("error");
+      setDiscountMessage(err.message || "Invalid coupon code.");
       setAppliedDiscount(null);
     }
   };
 
-  const toggleSelection = (id: string, state: string[], setState: React.Dispatch<React.SetStateAction<string[]>>) => {
-    if (state.includes(id)) {
-      setState(state.filter(item => item !== id));
-    } else {
-      setState([...state, id]);
-    }
-  };
+  // Build the textual package blueprint
+  const packageString = useMemo(() => {
+    const parts: string[] = [];
+    selectedItemsList.forEach((item) => parts.push(`${item.label}`));
+    return `Custom Plan: ${parts.join(" | ")}`;
+  }, [selectedItemsList]);
 
-  const calculateTotal = React.useMemo(() => {
-    let total = 0;
-    const numEvents = selectedEvents.length;
-    selectedEvents.forEach(id => {
-      total += EVENTS.find(e => e.id === id)?.price || 0;
-    });
-    selectedServices.forEach(id => {
-      const service = SERVICES.find(s => s.id === id);
-      if (service) {
-        total += service.price * (numEvents > 0 ? numEvents : 1);
-      }
-    });
-    selectedAddons.forEach(id => {
-      total += ADDONS.find(a => a.id === id)?.price || 0;
-    });
-
-    if (appliedDiscount) {
-      if (appliedDiscount.type === 'percentage') {
-        total = total - (total * (appliedDiscount.value / 100));
-      } else if (appliedDiscount.type === 'flat') {
-        total = Math.max(0, total - appliedDiscount.value);
-      }
-    }
-
-    return total;
-  }, [selectedEvents, selectedServices, selectedAddons, EVENTS, SERVICES, ADDONS, appliedDiscount]);
-
-  const handleStartPlanning = async () => {
-    if (!searchQuery.trim()) {
-      setAuthError('Please enter your email, phone, or quote ID.');
+  // Step 1 -> Step 2 validation
+  const handleProceedToDetails = () => {
+    if (selectedItemsList.length === 0) {
+      alert("Please select at least one ceremony, pre-wedding shoot, or coverage service to continue.");
       return;
     }
-    setAuthError('');
-    setIsSubmitting(true);
-    
-    try {
-      if (supabase) {
-        let query = supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(1);
-        
-        const q = searchQuery.trim();
-        const isEmail = q.includes('@');
-        const isQuoteId = q.length === 8 && /^[A-Z0-9]+$/i.test(q);
-        
-        if (isQuoteId) {
-          query = query.eq('quote_id', q.toUpperCase());
-        } else if (isEmail) {
-          query = query.eq('email', q);
-        } else {
-          query = query.or(`email.eq.${q},phone.eq.${q}`);
-        }
-        
-        const { data } = await query;
-        if (data && data.length > 0) {
-          const order = data[0];
-          setOrderId(order.id);
-          setResumedOrder(order);
-          
-          if (isQuoteId) {
-            setStep(6);
-            setIsSubmitting(false);
-            return;
-          }
-          
-          if (order.status === 'pending_payment') {
-            setStep(4);
-            setIsSubmitting(false);
-            if (isEmail) setFormData(prev => ({...prev, email: q}));
-            else setFormData(prev => ({...prev, phone: q}));
-            return;
-          }
-        }
-        
-        if (isQuoteId) {
-          setAuthError('Invalid Quote ID or Order not found.');
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      
-      const q = searchQuery.trim();
-      if (q.includes('@')) setFormData(prev => ({...prev, email: q}));
-      else setFormData(prev => ({...prev, phone: q}));
-      
-      setStep(2);
-    } catch (err) {
-      console.error(err);
-      setStep(2);
-    } finally {
-      setIsSubmitting(false);
-    }
+    setStep(2);
+    window.scrollTo({ top: 300, behavior: "smooth" });
   };
 
-  const handleNextToDetails = () => {
-    if (selectedEvents.length === 0 && selectedServices.length === 0 && selectedAddons.length === 0) {
-      alert("Please select at least one item to proceed.");
-      return;
-    }
-    setStep(3);
-  };
-
+  // Step 2 -> Step 3: Create Order & Generate Quote
   const handleCreateOrder = async () => {
-    if (!formData.name || !formData.date) {
-      alert("Please fill in your name and event date.");
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      alert("Please enter your name and contact phone number.");
       return;
     }
+    if (!formData.date) {
+      alert("Please select your shoot date.");
+      return;
+    }
+
     setIsSubmitting(true);
+    const generatedQuote = `VRUN-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
     try {
-      if (!supabase) throw new Error("Supabase client not initialized");
-      
-      const packageString = `Custom Plan: ${[...selectedEvents.map(id => EVENTS.find(e => e.id === id)?.name), ...selectedServices.map(id => SERVICES.find(e => e.id === id)?.name), ...selectedAddons.map(id => ADDONS.find(e => e.id === id)?.name)].filter(Boolean).join(', ')}`;
-      
-      const { data, error } = await supabase.from('orders').insert([{
+      const orderPayload = {
+        name: formData.name,
         customer: formData.name,
         email: formData.email,
         phone: formData.phone,
         date: formData.date,
-        location: formData.location,
+        location: formData.location || "Junagadh",
         package: packageString,
-        total_amount: calculateTotal,
-        status: 'pending_payment',
-        amountPaid: '0'
-      }]).select().single();
-      
-      if (error) throw error;
-      if (data) {
-        setOrderId(data.id);
-        
-        // Notify Admin of new order (non-blocking)
-        fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'admin_new_order', order: data })
-        }).catch(e => console.error("Notification failed", e));
-        
-        setStep(4);
+        total_amount: total,
+        quote_id: generatedQuote,
+        status: "pending_payment",
+        amountPaid: "0"
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload)
+      });
+
+      const resData = await res.json();
+      if (resData.order) {
+        setOrderId(resData.order.id);
+        setQuoteId(resData.order.quote_id || generatedQuote);
+        setResumedOrder(resData.order);
+      } else {
+        setOrderId(`ORD-${Date.now().toString().slice(-4)}`);
+        setQuoteId(generatedQuote);
       }
+
+      setStep(3);
+      window.scrollTo({ top: 300, behavior: "smooth" });
     } catch (err: any) {
-      alert("Failed to create order: " + err.message);
+      console.error("Order creation error:", err);
+      // Still allow client to advance to payment with local quote ID
+      setQuoteId(generatedQuote);
+      setOrderId(`ORD-${Date.now().toString().slice(-4)}`);
+      setStep(3);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Step 3 -> Step 4: Submit Payment Screenshot & Confirm
   const handlePaymentSubmit = async () => {
+    if (!paymentFile) {
+      setPaymentError("Payment screenshot is strictly required. Please upload your transfer receipt to proceed.");
+      return;
+    }
+    setPaymentError("");
     setIsSubmitting(true);
     try {
-      if (!supabase || !orderId) return;
-      
       let screenshotUrl = null;
-      if (paymentFile) {
-        const fileExt = paymentFile.name.split('.').pop();
-        const fileName = `${orderId}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('payment-screenshots')
-          .upload(fileName, paymentFile);
-          
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('payment-screenshots')
-          .getPublicUrl(fileName);
-          
-        screenshotUrl = publicUrl;
-      }
-      
-      const updatePayload: any = { status: 'pending', amountPaid: '5000' };
-      if (screenshotUrl) {
-        updatePayload.payment_screenshot_url = screenshotUrl;
+
+      if (paymentFile && supabase) {
+        try {
+          const fileExt = paymentFile.name.split(".").pop();
+          const fileName = `${quoteId || "quote"}-${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from("payment-screenshots")
+            .upload(fileName, paymentFile);
+
+          if (!uploadError) {
+            const {
+              data: { publicUrl }
+            } = supabase.storage.from("payment-screenshots").getPublicUrl(fileName);
+            screenshotUrl = publicUrl;
+          }
+        } catch (e) {
+          console.warn("Storage upload fallback:", e);
+        }
       }
 
-      const { data: updatedOrder, error } = await supabase.from('orders').update(updatePayload).eq('id', orderId).select().single();
-      if (error) throw error;
-      
-      // Notify Customer of confirmed quote (non-blocking)
-      if (updatedOrder) {
-        fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'customer_confirmed', order: updatedOrder })
-        }).catch(e => console.error("Notification failed", e));
-      }
-      
-      setStep(5);
+      const updatePayload = {
+        id: orderId || quoteId,
+        updates: {
+          status: "pending",
+          amountPaid: "5000",
+          payment_screenshot_url: screenshotUrl || paymentPreview || "uploaded"
+        }
+      };
+
+      await fetch("/api/orders", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload)
+      });
+
+      // Notify studio (non-blocking)
+      fetch("/api/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "admin_new_order",
+          order: {
+            customer: formData.name,
+            phone: formData.phone,
+            package: packageString,
+            total_amount: total,
+            quote_id: quoteId,
+            date: formData.date
+          }
+        })
+      }).catch((e) => console.warn("Notify error:", e));
+
+      setStep(4);
+      window.scrollTo({ top: 300, behavior: "smooth" });
     } catch (err: any) {
       alert("Error confirming payment: " + err.message);
     } finally {
@@ -335,611 +631,1366 @@ export default function CustomPlanBuilder() {
     }
   };
 
-  return (
-    <main className="relative min-h-screen bg-[#ffffff] text-[#1a1a1a] selection:bg-[#003366] selection:text-white">
-      <Header forceSolid={true} />
-      
-      {/* Luxury Hero Banner */}
-      <section className="relative w-full h-[60vh] min-h-[500px] flex flex-col items-center justify-center text-center px-6 pt-24">
-        {/* Background Image - Lighter for Light Theme */}
-        <div className="absolute inset-0 z-0">
-          <Image 
-            src="https://res.cloudinary.com/ujwz0e7r/image/upload/q_auto,f_auto/DSC00362.JPG"
-            alt="Wedding Cover"
-            fill
-            className="object-cover opacity-10"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#ffffff] via-[#ffffff]/80 to-[#ffffff]" />
-        </div>
+  // Track existing order by Quote ID or Phone/Email
+  const handleSearchOrder = async () => {
+    if (!searchQuery.trim()) {
+      setAuthError("Please enter your Quote ID, Phone or Email.");
+      return;
+    }
+    setAuthError("");
+    setIsSubmitting(true);
 
-        <div className="relative z-10 max-w-3xl mx-auto mt-20">
-          <div className="flex items-center justify-center gap-2 text-[#003366] mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="text-xs font-serif font-bold uppercase tracking-[0.35em]">Bespoke Creation</span>
+    try {
+      const res = await fetch(`/api/orders?q=${encodeURIComponent(searchQuery.trim())}`);
+      const data = await res.json();
+
+      if (data.order) {
+        setResumedOrder(data.order);
+        setOrderId(data.order.id);
+        setQuoteId(data.order.quote_id);
+        setActiveTab("tracking");
+      } else {
+        setAuthError("No order found matching this Quote ID or Contact number.");
+      }
+    } catch (err: any) {
+      setAuthError("Unable to locate order. Please check your details.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <main className="relative min-h-screen bg-[#030814] text-slate-100 selection:bg-[#003366] selection:text-white">
+      <Header forceSolid={true} />
+
+      {/* Luxury Hero Banner */}
+      <section className="relative w-full pt-32 pb-16 px-6 overflow-hidden border-b border-white/5">
+        {/* Ambient Glows */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-[#003366]/30 via-amber-500/10 to-transparent blur-3xl pointer-events-none" />
+        <div className="absolute top-20 right-10 w-72 h-72 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-6 animate-in fade-in">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] font-mono uppercase tracking-[0.25em] text-amber-300 font-bold">
+              Bespoke Studio Rates • Junagadh
+            </span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-normal font-serif leading-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 text-[#1a1a1a]">
-            Build Your <span className="italic font-light text-[#003366]">Masterpiece</span>
+
+          <h1 className="text-4xl md:text-6xl font-serif font-normal tracking-tight text-white mb-4">
+            Custom Package <span className="italic text-amber-300 font-light">Builder</span>
           </h1>
-          <div className="w-12 h-[2px] bg-[#003366]/20 mx-auto mb-6" />
-          <p className="text-slate-500 text-sm tracking-wide md:text-base animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 leading-relaxed">
-            Curate your perfect wedding package. Select your events, choose the coverage you desire, and instantly see your custom investment estimate. 
+
+          <p className="max-w-2xl mx-auto text-slate-400 text-sm md:text-base leading-relaxed mb-8">
+            Create your personalized wedding package. Choose Photography &amp; Videography individually (50/50 split), add Pre-Wedding, configure Drone days, and view instant transparent pricing.
           </p>
+
+          {/* Quick Tab Switcher */}
+          <div className="inline-flex p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+            <button
+              onClick={() => {
+                setActiveTab("builder");
+                setResumedOrder(null);
+              }}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+                activeTab === "builder"
+                  ? "bg-[#003366] text-white shadow-lg shadow-[#003366]/40"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Build Package
+            </button>
+            <button
+              onClick={() => setActiveTab("tracking")}
+              className={`px-6 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+                activeTab === "tracking"
+                  ? "bg-[#003366] text-white shadow-lg shadow-[#003366]/40"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Search className="w-3.5 h-3.5" />
+              Track Quote / Order
+            </button>
+          </div>
         </div>
       </section>
 
-      <section className={`max-w-[1440px] mx-auto w-full px-6 pb-40 flex flex-col ${step === 1 || step === 6 ? 'items-center justify-center' : 'lg:flex-row items-start'} gap-12 lg:gap-16 relative z-10 -mt-10`}>
-        
-        {/* Left Column: The Builder (Interactive Form) */}
-        <div className={`w-full flex flex-col gap-24 ${step === 1 ? 'max-w-3xl mx-auto' : step === 6 ? 'max-w-6xl mx-auto' : 'flex-1'}`}>
-          
-          {fetchError && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-600 p-4 rounded-xl text-sm font-medium">
-              {fetchError}
-            </div>
-          )}
-          
-          {step === 1 ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] animate-in fade-in slide-in-from-bottom-4 max-w-2xl w-full mx-auto mt-4">
-              <div className="mb-10 border-b border-slate-100 pb-8 text-center flex flex-col items-center">
-                <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase bg-[#003366]/5 px-3 py-1.5 rounded-full mb-5">Step 01</span>
-                <h2 className="text-4xl font-serif text-[#1a1a1a] mb-3">Let's Get Started</h2>
-                <p className="text-sm text-slate-500 max-w-md">Enter your email, phone, or a specific Quote ID to track an existing order.</p>
+      {/* Main Content Area */}
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 py-12 relative z-10">
+        {activeTab === "tracking" ? (
+          /* ============================================================== */
+          /* TRACKING VIEW                                                  */
+          /* ============================================================== */
+          <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4">
+            <div className="bg-[#0b1329] border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl backdrop-blur-xl">
+              <div className="text-center mb-8">
+                <span className="text-xs font-mono uppercase tracking-widest text-amber-400 font-bold block mb-2">
+                  Order Status Lookup
+                </span>
+                <h2 className="text-3xl font-serif text-white">Track Your Booking</h2>
+                <p className="text-xs text-slate-400 mt-2">
+                  Enter your Quote ID (e.g. VRUN-7A1B), Phone Number, or Email to view your booking details.
+                </p>
               </div>
-              
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input 
-                      type="text" 
-                      placeholder="Email, Phone, or Quote ID (e.g. 989D4715)" 
-                      value={searchQuery} 
-                      onChange={e => setSearchQuery(e.target.value)} 
-                      onKeyDown={e => e.key === 'Enter' && handleStartPlanning()} 
-                      className="w-full border border-slate-200 bg-slate-50/50 focus:bg-white pl-11 pr-4 py-4 rounded-xl text-sm outline-none focus:border-[#003366] focus:ring-4 focus:ring-[#003366]/5 transition-all" 
-                    />
-                  </div>
-                </div>
 
-                <button
-                  onClick={handleStartPlanning}
-                  disabled={isSubmitting}
-                  className="w-full py-4 rounded-xl font-sans font-bold tracking-[0.15em] uppercase text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-[#003366] text-white hover:bg-[#002244] shadow-[0_10px_20px_rgba(0,51,102,0.15)] disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Searching...' : 'Continue'}
-                  {!isSubmitting && <ArrowRight className="w-4 h-4" />}
-                </button>
-
-                {authError && <p className="text-red-500 text-[11px] font-medium pl-1 text-center">{authError}</p>}
-              </div>
-            </div>
-          ) : step === 2 ? (
-            <>
-          
-          {/* Section 1: Events */}
-          <div className="animate-in fade-in duration-1000 delay-300">
-            <div className="flex flex-col gap-2 mb-10 border-b border-slate-200/50 pb-6">
-              <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase">Step 01</span>
-              <h2 className="text-3xl font-serif text-[#1a1a1a]">Curate Your Events</h2>
-              <p className="text-xs text-slate-500">Select the ceremonies that require our presence.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {EVENTS.map(event => {
-                const isSelected = selectedEvents.includes(event.id);
-                return (
-                  <button 
-                    key={event.id}
-                    onClick={() => toggleSelection(event.id, selectedEvents, setSelectedEvents)}
-                    className={`group relative p-6 rounded-2xl text-left transition-all duration-500 border hover:scale-[1.02] overflow-hidden ${
-                      isSelected 
-                      ? 'bg-white border-amber-500/30 shadow-[0_15px_40px_rgba(0,51,102,0.08)]' 
-                      : 'bg-[#F0F7FD]/50 border-slate-200/60 hover:bg-white hover:border-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.02)]'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`font-serif text-xl transition-colors ${isSelected ? 'text-[#003366]' : 'text-[#1a1a1a]'}`}>
-                        {event.name}
-                      </span>
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
-                        isSelected ? 'bg-amber-500 border-amber-500 text-white scale-110' : 'border-slate-300 group-hover:border-slate-400'
-                      }`}>
-                        {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 leading-relaxed">{event.desc}</p>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Section 2: Services */}
-          <div className="animate-in fade-in duration-1000 delay-400">
-            <div className="flex flex-col gap-2 mb-10 border-b border-slate-200/50 pb-6">
-              <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase">Step 02</span>
-              <h2 className="text-3xl font-serif text-[#1a1a1a]">Determine Coverage</h2>
-              <p className="text-xs text-slate-500">Choose the artistic mediums to capture your {selectedEvents.length} events.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {SERVICES.map(service => {
-                const isSelected = selectedServices.includes(service.id);
-                return (
-                  <button 
-                    key={service.id}
-                    onClick={() => toggleSelection(service.id, selectedServices, setSelectedServices)}
-                    className={`group relative p-6 rounded-2xl text-left transition-all duration-500 border flex items-center gap-5 hover:scale-[1.02] overflow-hidden ${
-                      isSelected 
-                      ? 'bg-white border-amber-500/30 shadow-[0_15px_40px_rgba(0,51,102,0.08)]' 
-                      : 'bg-[#F0F7FD]/50 border-slate-200/60 hover:bg-white hover:border-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.02)]'
-                    }`}
-                  >
-                    <div className={`p-3 rounded-xl transition-colors ${isSelected ? 'bg-[#003366]/10 text-[#003366]' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600'}`}>
-                      <service.icon className="w-5 h-5" strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1">
-                      <span className={`block font-serif text-lg mb-1 transition-colors ${isSelected ? 'text-[#003366]' : 'text-[#1a1a1a]'}`}>
-                        {service.name}
-                      </span>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">{service.desc}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all shrink-0 ${
-                      isSelected ? 'bg-amber-500 border-amber-500 text-white scale-110' : 'border-slate-300 group-hover:border-slate-400'
-                    }`}>
-                      {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Section 3: Add-ons */}
-          <div className="animate-in fade-in duration-1000 delay-500">
-            <div className="flex flex-col gap-2 mb-10 border-b border-slate-200/50 pb-6">
-              <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase">Step 03</span>
-              <h2 className="text-3xl font-serif text-[#1a1a1a]">Tangible Memories</h2>
-              <p className="text-xs text-slate-500">Select premium deliverables and add-ons.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {ADDONS.map(addon => {
-                const isSelected = selectedAddons.includes(addon.id);
-                return (
-                  <button 
-                    key={addon.id}
-                    onClick={() => toggleSelection(addon.id, selectedAddons, setSelectedAddons)}
-                    className={`group relative p-6 rounded-2xl text-left transition-all duration-500 border hover:scale-[1.02] overflow-hidden ${
-                      isSelected 
-                      ? 'bg-white border-amber-500/30 shadow-[0_15px_40px_rgba(0,51,102,0.08)]' 
-                      : 'bg-[#F0F7FD]/50 border-slate-200/60 hover:bg-white hover:border-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.02)]'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className={`font-serif text-lg leading-tight pr-4 transition-colors ${isSelected ? 'text-[#003366]' : 'text-[#1a1a1a]'}`}>
-                        {addon.name}
-                      </span>
-                      <div className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center border transition-all ${
-                        isSelected ? 'bg-amber-500 border-amber-500 text-white scale-110' : 'border-slate-300 group-hover:border-slate-400'
-                      }`}>
-                        {isSelected && <Check className="w-3 h-3" strokeWidth={3} />}
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">{addon.desc}</p>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          </>
-          ) : step === 3 ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] animate-in fade-in slide-in-from-right-8 max-w-2xl w-full mx-auto mt-4">
-              <div className="mb-10 border-b border-slate-100 pb-8 relative">
-                <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase bg-[#003366]/5 px-3 py-1.5 rounded-full inline-block mb-4">Step 02</span>
-                <h2 className="text-4xl font-serif text-[#1a1a1a] mb-2">Your Details</h2>
-                <p className="text-sm text-slate-500">Provide your information so we can generate and save your formal custom quote.</p>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 rounded-full pointer-events-none" />
-              </div>
-              
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="e.g. Rahul Sharma" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full border border-slate-200 bg-slate-50/50 focus:bg-white pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none focus:border-[#003366] focus:ring-4 focus:ring-[#003366]/5 transition-all" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="email" placeholder="rahul@example.com" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border border-slate-200 bg-slate-50/50 focus:bg-white pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none focus:border-[#003366] focus:ring-4 focus:ring-[#003366]/5 transition-all text-slate-700" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="tel" placeholder="+91 XXXXX XXXXX" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full border border-slate-200 bg-slate-50/50 focus:bg-white pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none focus:border-[#003366] focus:ring-4 focus:ring-[#003366]/5 transition-all text-slate-700" />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Event Date</label>
-                  <CustomDatePicker 
-                    value={formData.date} 
-                    onChange={date => setFormData({...formData, date})} 
-                    bookedDates={bookedDates} 
+              <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearchOrder()}
+                    placeholder="Enter Quote ID, Phone or Email..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/20"
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-widest pl-1">Event Location / Venue</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="text" placeholder="e.g. Taj Palace, Mumbai" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} className="w-full border border-slate-200 bg-slate-50/50 focus:bg-white pl-11 pr-4 py-3.5 rounded-xl text-sm outline-none focus:border-[#003366] focus:ring-4 focus:ring-[#003366]/5 transition-all text-slate-700" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : step === 4 ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] animate-in fade-in slide-in-from-right-8 max-w-2xl w-full mx-auto mt-4">
-              <div className="mb-10 border-b border-slate-100 pb-8 text-center flex flex-col items-center">
-                <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase bg-[#003366]/5 px-3 py-1.5 rounded-full mb-5">Step 04</span>
-                <h2 className="text-4xl font-serif text-[#1a1a1a] mb-3">
-                  {resumedOrder ? `Welcome Back, ${resumedOrder.customer.split(' ')[0]}!` : "Secure Your Booking"}
-                </h2>
-                <p className="text-sm text-slate-500 max-w-md">
-                  {resumedOrder 
-                    ? "You're almost there! Complete your payment to officially block your dates." 
-                    : "Your quote is securely saved. You can always resume it later using your email or phone number."}
-                </p>
-                <div className="mt-5 bg-slate-50 border border-slate-100 px-6 py-3 rounded-2xl flex items-center gap-3">
-                  <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Quote ID</span>
-                  <div className="w-px h-4 bg-slate-200" />
-                  <strong className="text-[#003366] font-mono tracking-wider text-lg">{orderId?.split('-')[0].toUpperCase()}</strong>
-                </div>
-              </div>
-              
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50/30 border border-amber-200/60 p-6 rounded-2xl mb-8 flex items-start gap-4">
-                <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-amber-900 mb-1">Advance Payment Required</h3>
-                  <p className="text-amber-700/80 text-sm leading-relaxed">To officially block your dates and confirm our team, an advance token amount of <strong className="font-bold">₹5,000</strong> is required. Please transfer via UPI/Bank and upload the screenshot below.</p>
-                </div>
-              </div>
-              
-              <div className="border-2 border-dashed border-slate-300 rounded-3xl p-12 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-[#003366]/30 transition-all cursor-pointer group">
-                <div className="w-16 h-16 bg-[#003366]/5 text-[#003366] rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#003366]/10 transition-all duration-300">
-                  <UploadCloud className="w-8 h-8" />
-                </div>
-                <h3 className="text-base font-bold text-[#1a1a1a] mb-1">Upload Payment Screenshot</h3>
-                <p className="text-xs text-slate-400 mb-6 font-medium tracking-wide">PNG, JPG or PDF up to 5MB</p>
-                
-                {/* Visual Fake Input for aesthetics */}
-                <div className="relative overflow-hidden inline-block">
-                  <button className="bg-white border shadow-sm px-6 py-2.5 rounded-full text-xs font-bold text-slate-700 pointer-events-none group-hover:border-[#003366]/30 group-hover:text-[#003366] transition-colors">
-                    {paymentFile ? paymentFile.name : 'Browse Files'}
-                  </button>
-                  <input type="file" onChange={e => setPaymentFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                </div>
-              </div>
-            </div>
-          ) : step === 5 ? (
-            <div className="bg-white p-12 md:p-20 rounded-3xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] animate-in fade-in zoom-in-95 flex flex-col items-center text-center max-w-2xl w-full mx-auto mt-4">
-              <div className="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-8 relative">
-                <div className="absolute inset-0 bg-emerald-400 rounded-full animate-ping opacity-20"></div>
-                <FileCheck2 className="w-10 h-10 relative z-10" />
-              </div>
-              <h2 className="text-4xl md:text-5xl font-serif text-[#1a1a1a] mb-4">Payment Submitted!</h2>
-              <div className="w-12 h-1 bg-emerald-500/20 rounded-full mb-6" />
-              <p className="text-base text-slate-500 mb-8 max-w-md leading-relaxed">
-                Thank you! Your tracking ID is <strong className="text-[#003366] font-mono px-1">{orderId?.split('-')[0].toUpperCase()}</strong>. We have received your payment submission. Our team will verify the details and contact you shortly to finalize the contract.
-              </p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="bg-slate-50 border border-slate-200 text-slate-600 px-6 py-3 rounded-xl text-sm font-bold hover:bg-slate-100 hover:text-[#1a1a1a] transition-all"
-              >
-                Create Another Quote
-              </button>
-            </div>
-          ) : step === 6 ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-[0_20px_60px_rgba(0,0,0,0.03)] animate-in fade-in slide-in-from-bottom-4 w-full mx-auto mt-4">
-              <div className="mb-10 border-b border-slate-100 pb-8 flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-[#003366]/5 text-[#003366] rounded-2xl flex items-center justify-center mb-5">
-                  <LayoutDashboard className="w-8 h-8" />
-                </div>
-                <h2 className="text-4xl font-serif text-[#1a1a1a] mb-3">Order Dashboard</h2>
-                <div className="mt-4 bg-slate-50 border border-slate-100 px-6 py-2.5 rounded-2xl flex items-center gap-3">
-                  <span className="text-xs text-slate-400 uppercase tracking-widest font-bold">Quote ID</span>
-                  <div className="w-px h-4 bg-slate-200" />
-                  <strong className="text-[#003366] font-mono tracking-wider text-lg">{resumedOrder?.quote_id || resumedOrder?.id?.split('-')[0].toUpperCase()}</strong>
-                </div>
+                <button
+                  onClick={handleSearchOrder}
+                  disabled={isSubmitting}
+                  className="bg-[#003366] hover:bg-[#002244] text-white px-8 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                >
+                  {isSubmitting ? "Searching..." : "Track"}
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Status & Client Info */}
-                <div className="lg:col-span-1 space-y-6">
-                  {/* Status Card */}
-                  <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Current Status</h3>
-                    <div className="flex items-start gap-4">
-                      {resumedOrder?.status === 'pending_payment' ? (
-                        <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0"><Clock className="w-5 h-5" /></div>
-                      ) : resumedOrder?.status === 'pending' ? (
-                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0"><Search className="w-5 h-5" /></div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><Check className="w-5 h-5" /></div>
-                      )}
-                      <div>
-                        <div className="font-bold text-slate-800 text-sm">
-                          {resumedOrder?.status === 'pending_payment' ? 'Awaiting Payment' : 
-                           resumedOrder?.status === 'pending' ? 'Verifying Payment' : 'Booked!'}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-1 leading-relaxed">
-                          {resumedOrder?.status === 'pending_payment' ? 'Complete your token advance to lock dates.' : 
-                           resumedOrder?.status === 'pending' ? 'Verifying uploaded screenshot.' : 'Your dates are locked.'}
-                        </div>
-                      </div>
-                    </div>
-                    {resumedOrder?.status === 'pending_payment' && (
-                      <button onClick={() => setStep(4)} className="w-full mt-5 bg-[#003366] text-white px-4 py-3 rounded-xl text-xs uppercase tracking-widest font-bold hover:bg-[#002244] transition-colors shadow-sm">
-                        Pay Advance Now
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Client Details */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.02)]">
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-5 pb-3 border-b border-slate-100">Client Details</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <User className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 truncate">{resumedOrder?.customer || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 truncate">{resumedOrder?.email || 'N/A'}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="text-sm font-medium text-slate-700 truncate">{resumedOrder?.phone || 'N/A'}</span>
-                      </div>
-                    </div>
-                  </div>
+              {authError && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center mb-6">
+                  {authError}
                 </div>
+              )}
 
-                {/* Right Column: Financials & Package */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Financials Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)]">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total Amount</div>
-                      <div className="text-2xl font-serif text-slate-800">₹{Number(resumedOrder?.total_amount || 0).toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)]">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Amount Paid</div>
-                      <div className="text-2xl font-serif text-emerald-600">₹{Number(resumedOrder?.amountPaid || 0).toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] bg-amber-50/30">
-                      <div className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest mb-2">Balance Due</div>
-                      <div className="text-2xl font-serif text-amber-600">₹{(Number(resumedOrder?.total_amount || 0) - Number(resumedOrder?.amountPaid || 0)).toLocaleString('en-IN')}</div>
-                    </div>
-                  </div>
-
-                  {/* Event & Location Info */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.02)] flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                    <div className="flex-1 flex gap-4 items-center border-b sm:border-b-0 sm:border-r border-slate-100 pb-4 sm:pb-0 pr-0 sm:pr-4">
-                      <div className="w-10 h-10 rounded-full bg-[#003366]/5 flex items-center justify-center shrink-0">
-                        <Calendar className="w-4 h-4 text-[#003366]" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Event Date</div>
-                        <div className="text-sm font-medium text-slate-800">{resumedOrder?.date ? new Date(resumedOrder.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A'}</div>
-                      </div>
-                    </div>
-                    <div className="flex-1 flex gap-4 items-center">
-                      <div className="w-10 h-10 rounded-full bg-[#003366]/5 flex items-center justify-center shrink-0">
-                        <MapPin className="w-4 h-4 text-[#003366]" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Location</div>
-                        <div className="text-sm font-medium text-slate-800 truncate">{resumedOrder?.location || 'Not Specified'}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Package breakdown */}
-                  <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-[0_4px_15px_rgba(0,0,0,0.02)]">
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-5 pb-3 border-b border-slate-100">Package Blueprint</h3>
-                    <div className="flex flex-wrap gap-2.5">
-                      {resumedOrder?.package?.replace('Custom Plan: ', '').split(', ').filter(Boolean).map((item: string, idx: number) => (
-                        <div key={idx} className="bg-slate-50 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-        </div>
-
-        {/* Right Column: Sticky Summary Panel */}
-        {step >= 2 && step <= 5 && (
-          <div className="w-full lg:w-[400px] shrink-0 sticky top-24 animate-in fade-in duration-1000 delay-700 z-20">
-          <div className="bg-white text-[#1a1a1a] rounded-2xl border border-slate-200 shadow-[0_20px_45px_rgba(0,51,102,0.08)] p-6 relative overflow-hidden">
-            
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <h3 className="text-[10px] font-bold tracking-[0.2em] uppercase text-slate-500">Your Blueprint</h3>
-            </div>
-            
-            <div className="space-y-4 mb-5 min-h-[100px]">
-              {resumedOrder ? (
-                <div className="flex flex-col gap-3 animate-in fade-in">
-                  <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase block">Saved Package</span>
-                  <div className="text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-200 leading-relaxed font-medium shadow-sm">
-                    {resumedOrder.package}
-                  </div>
-                </div>
-              ) : selectedEvents.length === 0 && selectedServices.length === 0 && selectedAddons.length === 0 ? (
-                <div className="h-[100px] flex flex-col items-center justify-center text-center opacity-40">
-                  <span className="text-xs uppercase tracking-widest mb-2 font-bold text-[#003366]">Empty Canvas</span>
-                  <p className="text-[10px] max-w-[200px] text-slate-500">Select options on the left to build your customized investment plan.</p>
-                </div>
-              ) : (
-                <>
-                  {selectedEvents.length > 0 && (
+              {resumedOrder && (
+                <div className="mt-8 pt-8 border-t border-white/10 space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4 bg-white/5 p-5 rounded-2xl border border-white/10">
                     <div>
-                      <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase mb-2 block">Events</span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEvents.map(id => (
-                          <div key={id} className="text-[11px] text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-amber-500" />
-                            {EVENTS.find(e => e.id === id)?.name}
-                          </div>
-                        ))}
-                      </div>
+                      <span className="text-[10px] font-mono uppercase text-slate-400 tracking-widest block">
+                        Quote Reference
+                      </span>
+                      <span className="text-xl font-mono font-bold text-amber-300">
+                        {resumedOrder.quote_id || resumedOrder.id}
+                      </span>
                     </div>
-                  )}
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 tracking-widest block">
+                        Status
+                      </span>
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-1 ${
+                          resumedOrder.status === "confirmed"
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : resumedOrder.status === "pending"
+                            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                            : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {resumedOrder.status === "confirmed"
+                          ? "Confirmed"
+                          : resumedOrder.status === "pending"
+                          ? "Verifying Payment"
+                          : "Awaiting Advance Token"}
+                      </span>
+                    </div>
+                  </div>
 
-                  {selectedServices.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100">
-                      <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase mb-2 block">Coverage</span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedServices.map(id => (
-                          <div key={id} className="text-[11px] text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-amber-500" />
-                            {SERVICES.find(e => e.id === id)?.name}
-                          </div>
-                        ))}
-                      </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                      <span className="text-xs text-slate-400 uppercase font-bold tracking-wider block mb-1">
+                        Client Details
+                      </span>
+                      <p className="text-sm font-bold text-white">{resumedOrder.customer || resumedOrder.name}</p>
+                      <p className="text-xs text-slate-400 mt-1">{resumedOrder.phone}</p>
+                      <p className="text-xs text-slate-400">{resumedOrder.email || "No email"}</p>
                     </div>
-                  )}
 
-                  {selectedAddons.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100">
-                      <span className="text-[10px] font-mono tracking-widest text-[#003366] font-bold uppercase mb-2 block">Add-ons</span>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedAddons.map(id => (
-                          <div key={id} className="text-[11px] text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-md border border-slate-200 flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-amber-500" />
-                            {ADDONS.find(e => e.id === id)?.name}
+                    <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                      <span className="text-xs text-slate-400 uppercase font-bold tracking-wider block mb-1">
+                        Event Date &amp; Location
+                      </span>
+                      <p className="text-sm font-bold text-white">
+                        {resumedOrder.date
+                          ? new Date(resumedOrder.date).toLocaleDateString("en-IN", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric"
+                            })
+                          : "Date not set"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">{resumedOrder.location || "Junagadh"}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
+                    <span className="text-xs text-slate-400 uppercase font-bold tracking-wider block mb-2">
+                      Package Blueprint
+                    </span>
+                    <p className="text-sm text-slate-200 leading-relaxed font-medium">
+                      {resumedOrder.package}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">
+                        Total Investment
+                      </span>
+                      <span className="text-lg font-serif font-bold text-white">
+                        ₹{Number(resumedOrder.total_amount || 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">
+                        Advance Paid
+                      </span>
+                      <span className="text-lg font-serif font-bold text-emerald-400">
+                        ₹{Number(resumedOrder.amountPaid || 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block mb-1">
+                        Balance Due
+                      </span>
+                      <span className="text-lg font-serif font-bold text-amber-400">
+                        ₹{(
+                          Number(resumedOrder.total_amount || 0) -
+                          Number(resumedOrder.amountPaid || 0)
+                        ).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {resumedOrder.status === "pending_payment" && (
+                    <button
+                      onClick={() => {
+                        setQuoteId(resumedOrder.quote_id || resumedOrder.id);
+                        setOrderId(resumedOrder.id);
+                        setActiveTab("builder");
+                        setStep(3);
+                      }}
+                      className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase tracking-wider text-xs transition-all shadow-lg"
+                    >
+                      Pay ₹5,000 Advance Token Now
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ============================================================== */
+          /* BUILDER VIEW (STEPS 1, 2, 3, 4)                                */
+          /* ============================================================== */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left 8 Columns: Builder Steps */}
+            <div className="lg:col-span-8 space-y-10">
+              {/* Step Progression Bar */}
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-[#0b1329] border border-white/10 text-xs font-mono">
+                <div
+                  className={`flex items-center gap-2 ${
+                    step >= 1 ? "text-amber-300 font-bold" : "text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
+                      step >= 1 ? "bg-amber-400 text-black font-bold" : "bg-white/10 text-slate-400"
+                    }`}
+                  >
+                    1
+                  </span>
+                  <span className="hidden sm:inline">Select Package</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600" />
+                <div
+                  className={`flex items-center gap-2 ${
+                    step >= 2 ? "text-amber-300 font-bold" : "text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
+                      step >= 2 ? "bg-amber-400 text-black font-bold" : "bg-white/10 text-slate-400"
+                    }`}
+                  >
+                    2
+                  </span>
+                  <span className="hidden sm:inline">Event Details</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600" />
+                <div
+                  className={`flex items-center gap-2 ${
+                    step >= 3 ? "text-amber-300 font-bold" : "text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
+                      step >= 3 ? "bg-amber-400 text-black font-bold" : "bg-white/10 text-slate-400"
+                    }`}
+                  >
+                    3
+                  </span>
+                  <span className="hidden sm:inline">Advance Payment</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600" />
+                <div
+                  className={`flex items-center gap-2 ${
+                    step >= 4 ? "text-emerald-400 font-bold" : "text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] ${
+                      step >= 4 ? "bg-emerald-400 text-black font-bold" : "bg-white/10 text-slate-400"
+                    }`}
+                  >
+                    4
+                  </span>
+                  <span className="hidden sm:inline">Confirmed</span>
+                </div>
+              </div>
+
+              {step === 1 && (
+                /* STEP 1: CURATE EVENTS, COVERAGE & DRONE */
+                <div className="space-y-10 animate-in fade-in duration-500">
+                  {/* 1. PRE-WEDDING SHOOT (Special Standalone Package - 15K) */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-400 font-bold block">
+                          Solo Package • All Inclusive
+                        </span>
+                        <h2 className="text-2xl font-serif text-white">Pre-Wedding Shoot</h2>
+                      </div>
+                      <span className="text-xl font-serif font-bold text-amber-300">
+                        ₹15,000
+                      </span>
+                    </div>
+
+                    <div
+                      onClick={() => setIncludePreWedding((prev) => !prev)}
+                      className={`relative rounded-3xl p-6 sm:p-7 border cursor-pointer transition-all duration-300 group overflow-hidden ${
+                        includePreWedding
+                          ? "bg-gradient-to-r from-[#003366]/40 via-[#0b1329] to-[#003366]/30 border-amber-400/60 shadow-[0_10px_30px_rgba(251,191,36,0.1)] ring-1 ring-amber-400/40"
+                          : "bg-[#0b1329]/80 border-white/10 hover:border-white/20 hover:bg-[#0b1329]"
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center gap-3">
+                            <h3 className="text-xl font-serif text-white font-medium">
+                              Pre-Wedding Story Package
+                            </h3>
+                            {includePreWedding && (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-amber-400 text-black">
+                                Selected
+                              </span>
+                            )}
                           </div>
-                        ))}
+                          <p className="text-xs text-slate-400 leading-relaxed">
+                            All Couple photos with cinematic grading, 10 Days Story coverage, and 1 Instagram Reel. *(Travel charge extra)*
+                          </p>
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            <span className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300">
+                              📸 All Couple Photos
+                            </span>
+                            <span className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300">
+                              🎬 1 Cinematic Reel
+                            </span>
+                            <span className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-slate-300">
+                              ✨ 10 Days Story
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="text-right">
+                            <span className="text-2xl font-serif font-bold text-white block">
+                              ₹15,000
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              Flat Complete Rate
+                            </span>
+                          </div>
+                          <div
+                            className={`w-7 h-7 rounded-full flex items-center justify-center border transition-all ${
+                              includePreWedding
+                                ? "bg-amber-400 border-amber-400 text-black"
+                                : "border-slate-600 group-hover:border-slate-400"
+                            }`}
+                          >
+                            {includePreWedding && <Check className="w-4 h-4 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* In-Card Drone for Pre-Wedding */}
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                              (eventDrones["pre_wedding"] || 0) > 0
+                                ? "bg-amber-400 text-black shadow-md shadow-amber-400/20"
+                                : "bg-white/5 text-slate-400"
+                            }`}
+                          >
+                            <Sparkles className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-white block">
+                              Pre-Wedding Drone Coverage
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              ₹10,000 / Day
+                            </span>
+                          </div>
+                        </div>
+
+                        {(eventDrones["pre_wedding"] || 0) === 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!includePreWedding) setIncludePreWedding(true);
+                              setEventDrones((prev) => ({ ...prev, pre_wedding: 1 }));
+                            }}
+                            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Add Drone</span>
+                          </button>
+                        ) : (
+                          <div className="flex items-center gap-2 bg-[#003366]/40 p-1.5 rounded-xl border border-amber-400/40 shadow-inner">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = eventDrones["pre_wedding"] || 1;
+                                if (current <= 1) {
+                                  setEventDrones((prev) => {
+                                    const next = { ...prev };
+                                    delete next["pre_wedding"];
+                                    return next;
+                                  });
+                                } else {
+                                  setEventDrones((prev) => ({ ...prev, pre_wedding: current - 1 }));
+                                }
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                              title="Decrease day"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+
+                            <span className="font-mono text-xs font-bold text-white px-2 min-w-[3.5rem] text-center">
+                              {eventDrones["pre_wedding"]}{" "}
+                              {eventDrones["pre_wedding"] === 1 ? "Day" : "Days"}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = eventDrones["pre_wedding"] || 1;
+                                setEventDrones((prev) => ({
+                                  ...prev,
+                                  pre_wedding: Math.min(10, current + 1)
+                                }));
+                              }}
+                              className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                              title="Increase day"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+
+                            <div className="border-l border-white/15 pl-2.5 pr-1 font-serif font-bold text-amber-300 text-xs">
+                              ₹{((eventDrones["pre_wedding"] || 1) * DRONE_PRICE_PER_DAY).toLocaleString("en-IN")}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </>
+                  </div>
+
+                  {/* 2. CEREMONY PACKAGES */}
+                  <div className="space-y-6">
+                    <div className="border-b border-white/10 pb-4">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-400 font-bold block">
+                        Ceremonies &amp; Coverage
+                      </span>
+                      <h2 className="text-2xl font-serif text-white">Event Coverage</h2>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Select Photography, Videography, or Both for each ceremony, and add Drone days as required.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-5">
+                      {EVENT_CATALOG.filter((e) => !e.isStandalone).map((event) => {
+                        const isWeddingSelected = Boolean(
+                          eventSelections["wedding"]?.photo || eventSelections["wedding"]?.video
+                        );
+
+                        // If this event is cinematic_candid, only show when Wedding is selected!
+                        if (event.id === "cinematic_candid" && !isWeddingSelected) {
+                          return (
+                            <div
+                              key="cinematic_locked"
+                              className="rounded-3xl border border-dashed border-amber-400/20 bg-amber-500/[0.03] p-6 transition-all duration-300"
+                            >
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-3.5">
+                                  <div className="w-10 h-10 rounded-2xl bg-amber-400/10 text-amber-400 border border-amber-400/20 flex items-center justify-center shrink-0">
+                                    <Lock className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-serif font-bold text-white text-base">
+                                        Cinematic / Candid Film (Locked)
+                                      </span>
+                                      <span className="text-[10px] font-mono uppercase bg-amber-400/10 text-amber-300 px-2 py-0.5 rounded border border-amber-400/20">
+                                        Requires Wedding Day
+                                      </span>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                      Select <strong className="text-white">Wedding (Lagna)</strong> to unlock Cinematic &amp; Candid film coverage.
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => toggleBoth("wedding")}
+                                  className="px-5 py-2.5 rounded-xl bg-amber-400 text-black hover:bg-amber-300 text-xs font-bold uppercase tracking-wider transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  Select Wedding to Unlock
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const selection = eventSelections[event.id] || {
+                          photo: false,
+                          video: false
+                        };
+                        const hasPhoto = selection.photo;
+                        const hasVideo = selection.video;
+                        const isBoth = hasPhoto && hasVideo;
+                        const isSelected = hasPhoto || hasVideo;
+
+                        return (
+                          <div
+                            key={event.id}
+                            className={`rounded-3xl border p-6 sm:p-7 transition-all duration-300 ${
+                              isSelected
+                                ? "bg-[#0b1329] border-[#003366] shadow-[0_10px_30px_rgba(0,51,102,0.25)] ring-1 ring-[#003366]/50"
+                                : "bg-[#080e21] border-white/5 hover:border-white/10"
+                            }`}
+                          >
+                            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <h3 className="text-xl font-serif text-white font-medium">
+                                    {event.name}
+                                  </h3>
+                                  {event.id === "cinematic_candid" && (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-amber-400 text-black">
+                                      ✨ Wedding Upgrade Unlocked
+                                    </span>
+                                  )}
+                                  {isBoth ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-[#003366] text-amber-300 border border-amber-400/30">
+                                      Photo + Video
+                                    </span>
+                                  ) : hasPhoto ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                                      Photography (₹{event.photoPrice.toLocaleString("en-IN")})
+                                    </span>
+                                  ) : hasVideo ? (
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase font-bold bg-purple-500/20 text-purple-300 border border-purple-400/30">
+                                      Videography (₹{event.videoPrice.toLocaleString("en-IN")})
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                  {event.description}
+                                </p>
+                              </div>
+
+                              <div className="text-left md:text-right">
+                                <span className="text-xs text-slate-500 uppercase font-mono block">
+                                  Full Event Rate
+                                </span>
+                                <span className="text-xl font-serif font-bold text-white">
+                                  ₹{event.fullPrice.toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Coverage Controls: Photography and Videography (NO 50% text) */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/5">
+                              {/* Option A: Photography */}
+                              <button
+                                type="button"
+                                onClick={() => toggleCoverage(event.id, "photo")}
+                                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                  hasPhoto
+                                    ? "bg-blue-600/20 border-blue-500 text-white shadow-md shadow-blue-500/10"
+                                    : "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <Camera className="w-4 h-4 text-blue-400" />
+                                  <div>
+                                    <span className="text-xs font-bold block">Photography</span>
+                                    <span className="text-[11px] font-mono font-bold text-amber-300">
+                                      ₹{event.photoPrice.toLocaleString("en-IN")}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                                    hasPhoto
+                                      ? "bg-blue-500 border-blue-500 text-white"
+                                      : "border-slate-600"
+                                  }`}
+                                >
+                                  {hasPhoto && <Check className="w-3 h-3 stroke-[3]" />}
+                                </div>
+                              </button>
+
+                              {/* Option B: Videography */}
+                              <button
+                                type="button"
+                                onClick={() => toggleCoverage(event.id, "video")}
+                                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                  hasVideo
+                                    ? "bg-purple-600/20 border-purple-500 text-white shadow-md shadow-purple-500/10"
+                                    : "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <Video className="w-4 h-4 text-purple-400" />
+                                  <div>
+                                    <span className="text-xs font-bold block">Videography</span>
+                                    <span className="text-[11px] font-mono font-bold text-amber-300">
+                                      ₹{event.videoPrice.toLocaleString("en-IN")}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                                    hasVideo
+                                      ? "bg-purple-500 border-purple-500 text-white"
+                                      : "border-slate-600"
+                                  }`}
+                                >
+                                  {hasVideo && <Check className="w-3 h-3 stroke-[3]" />}
+                                </div>
+                              </button>
+
+                              {/* Option C: Quick Select Both */}
+                              <button
+                                type="button"
+                                onClick={() => toggleBoth(event.id)}
+                                className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all cursor-pointer ${
+                                  isBoth
+                                    ? "bg-amber-500/20 border-amber-400 text-white shadow-md shadow-amber-500/10"
+                                    : "bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <Sparkles className="w-4 h-4 text-amber-400" />
+                                  <div>
+                                    <span className="text-xs font-bold block">Complete (Both)</span>
+                                    <span className="text-[11px] font-mono font-bold text-amber-300">
+                                      ₹{event.fullPrice.toLocaleString("en-IN")}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
+                                    isBoth
+                                      ? "bg-amber-400 border-amber-400 text-black"
+                                      : "border-slate-600"
+                                  }`}
+                                >
+                                  {isBoth && <Check className="w-3 h-3 stroke-[3]" />}
+                                </div>
+                              </button>
+                            </div>
+
+                            {/* In-Card Drone Aerial Stepper */}
+                            <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl">
+                              <div className="flex items-center gap-2.5">
+                                <div
+                                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                                    (eventDrones[event.id] || 0) > 0
+                                      ? "bg-amber-400 text-black shadow-md shadow-amber-400/20"
+                                      : "bg-white/5 text-slate-400"
+                                  }`}
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <span className="text-xs font-bold text-white block">
+                                    {event.name} Drone Coverage
+                                  </span>
+                                  <span className="text-[10px] font-mono text-slate-400">
+                                    ₹10,000 / Day
+                                  </span>
+                                </div>
+                              </div>
+
+                              {(eventDrones[event.id] || 0) === 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isSelected) toggleBoth(event.id);
+                                    setEventDrones((prev) => ({ ...prev, [event.id]: 1 }));
+                                  }}
+                                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>Add Drone</span>
+                                </button>
+                              ) : (
+                                <div className="flex items-center gap-2 bg-[#003366]/40 p-1.5 rounded-xl border border-amber-400/40 shadow-inner">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = eventDrones[event.id] || 1;
+                                      if (current <= 1) {
+                                        setEventDrones((prev) => {
+                                          const next = { ...prev };
+                                          delete next[event.id];
+                                          return next;
+                                        });
+                                      } else {
+                                        setEventDrones((prev) => ({ ...prev, [event.id]: current - 1 }));
+                                      }
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Decrease day"
+                                  >
+                                    <Minus className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <span className="font-mono text-xs font-bold text-white px-2 min-w-[3.5rem] text-center">
+                                    {eventDrones[event.id]} {eventDrones[event.id] === 1 ? "Day" : "Days"}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const current = eventDrones[event.id] || 1;
+                                      setEventDrones((prev) => ({
+                                        ...prev,
+                                        [event.id]: Math.min(10, current + 1)
+                                      }));
+                                    }}
+                                    className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                    title="Increase day"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <div className="border-l border-white/15 pl-2.5 pr-1 font-serif font-bold text-amber-300 text-xs">
+                                    ₹{((eventDrones[event.id] || 1) * DRONE_PRICE_PER_DAY).toLocaleString("en-IN")}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                /* STEP 2: CLIENT DETAILS & SHOOT DATE */
+                <div className="bg-[#0b1329] border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl animate-in fade-in slide-in-from-right-4 space-y-6">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-400 font-bold block mb-1">
+                      Step 02 • Client Information
+                    </span>
+                    <h2 className="text-3xl font-serif text-white">Event &amp; Booking Details</h2>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Provide your shoot date and location to verify team availability and generate your formal quote.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">
+                        Full Name *
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          placeholder="e.g. Yash Patel"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">
+                        WhatsApp / Phone Number *
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="tel"
+                          required
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          placeholder="+91 98765 43210"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">
+                        Email Address (Optional)
+                      </label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          placeholder="yash@example.com"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1">
+                        Shoot Venue / City
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={formData.location}
+                          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                          placeholder="Junagadh, Rajkot, Ahmedabad..."
+                          className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366] focus:ring-2 focus:ring-[#003366]/20"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 pt-2">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1 block">
+                      Shoot Date *
+                    </label>
+                    <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
+                      <CustomDatePicker
+                        value={formData.date}
+                        onChange={(date) => setFormData({ ...formData, date })}
+                        bookedDates={bookedDates}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 pt-6 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-6 py-3.5 rounded-xl border border-white/10 text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Back to Packages
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCreateOrder}
+                      disabled={isSubmitting}
+                      className="flex-1 py-4 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-[#003366]/40 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <span>{isSubmitting ? "Generating Quote..." : "Generate Quote & Reserve Dates"}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                /* STEP 3: ADVANCE TOKEN PAYMENT */
+                <div className="bg-[#0b1329] border border-white/10 rounded-3xl p-8 md:p-10 shadow-2xl animate-in fade-in slide-in-from-right-4 space-y-6">
+                  <div className="text-center pb-6 border-b border-white/10">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-amber-400 font-bold block mb-1">
+                      Step 03 • Lock Your Dates
+                    </span>
+                    <h2 className="text-3xl font-serif text-white">Payment &amp; Screenshot Verification</h2>
+                    <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto">
+                      Transfer the advance token of{" "}
+                      <strong className="text-amber-300 font-bold">₹5,000</strong> (or full investment{" "}
+                      <strong className="text-white font-bold">₹{total.toLocaleString("en-IN")}</strong>) via UPI, then upload the payment screenshot to proceed.
+                    </p>
+
+                    <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl mt-4">
+                      <span className="text-xs text-slate-400 uppercase font-mono">Your Quote ID:</span>
+                      <span className="text-base font-mono font-bold text-amber-300 tracking-wider">
+                        {quoteId}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment Details & QR Code Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                    {/* Bank / Studio Info & UPI QR */}
+                    <div className="space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+                            <QrCode className="w-4 h-4" />
+                            <span>Scan &amp; Pay via UPI</span>
+                          </h4>
+                          <span className="text-[10px] font-mono uppercase bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                            Instant UPI
+                          </span>
+                        </div>
+
+                        {/* QR Code Container */}
+                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-black/40 p-3.5 rounded-xl border border-white/10 mb-4">
+                          <div className="bg-white p-2 rounded-lg shrink-0 shadow-md">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
+                                `upi://pay?pa=vrundavanstudio@upi&pn=VrundavanStudio&am=5000&cu=INR`
+                              )}`}
+                              alt="Vrundavan Studio UPI QR"
+                              className="w-28 h-28 object-contain"
+                            />
+                          </div>
+                          <div className="text-xs space-y-1.5 text-center sm:text-left">
+                            <span className="text-[10px] font-mono text-slate-400 block uppercase tracking-wider">
+                              Scan with Any UPI App
+                            </span>
+                            <p className="text-slate-300 text-[11px] leading-tight">
+                              GPay • PhonePe • Paytm • BHIM
+                            </p>
+                            <div className="pt-1">
+                              <span className="text-[10px] text-slate-500 font-mono block">UPI ID</span>
+                              <div className="flex items-center gap-2 mt-0.5 justify-center sm:justify-start">
+                                <span className="font-mono text-xs text-white font-bold bg-white/10 px-2 py-1 rounded">
+                                  vrundavanstudio@upi
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText("vrundavanstudio@upi");
+                                    setCopiedUpi(true);
+                                    setTimeout(() => setCopiedUpi(false), 2000);
+                                  }}
+                                  className="p-1 text-slate-400 hover:text-amber-400 transition-colors"
+                                  title="Copy UPI ID"
+                                >
+                                  {copiedUpi ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between py-1 border-b border-white/5">
+                            <span className="text-slate-400">Total Package Investment</span>
+                            <span className="font-mono text-amber-300 font-bold">
+                              ₹{total.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-white/5">
+                            <span className="text-slate-400">Advance Token to Lock Dates</span>
+                            <span className="font-mono text-emerald-400 font-bold">₹5,000</span>
+                          </div>
+                          <div className="flex justify-between py-1 border-b border-white/5">
+                            <span className="text-slate-400">Remaining Balance on Shoot</span>
+                            <span className="font-mono text-slate-300 font-medium">
+                              ₹{Math.max(0, total - 5000).toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 text-[11px] text-slate-500 border-t border-white/5">
+                        📍 Studio: Shop No. A17, Cosmic Complex, Zanzarda Chowkdi, Junagadh
+                      </div>
+                    </div>
+
+                    {/* Screenshot Upload Box (Strictly Mandatory) */}
+                    <div className="space-y-3 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                            <UploadCloud className="w-4 h-4 text-amber-400" />
+                            <span>Payment Screenshot *</span>
+                          </label>
+                          <span className="text-[10px] font-mono uppercase bg-red-500/10 text-red-400 px-2 py-0.5 rounded border border-red-500/20 font-bold">
+                            Mandatory
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mb-3">
+                          Please attach screenshot of your advance transfer. Booking will only proceed after verification.
+                        </p>
+
+                        {!paymentFile ? (
+                          <div
+                            className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all relative ${
+                              paymentError
+                                ? "border-red-500/60 bg-red-500/[0.03]"
+                                : "border-amber-400/30 hover:border-amber-400/60 hover:bg-white/[0.02]"
+                            }`}
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-amber-400/10 text-amber-400 flex items-center justify-center mx-auto mb-2">
+                              <UploadCloud className="w-6 h-6" />
+                            </div>
+                            <p className="text-xs font-bold text-white mb-1">
+                              Click or Drag &amp; Drop Screenshot Here
+                            </p>
+                            <p className="text-[11px] text-slate-400 mb-2">
+                              Google Pay, PhonePe, Paytm, or Bank Transfer Receipt
+                            </p>
+                            <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-slate-300 text-[10px] font-mono">
+                              JPG, PNG or PDF up to 10MB
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                if (file) {
+                                  if (file.size > 10 * 1024 * 1024) {
+                                    setPaymentError("File size must be under 10MB");
+                                    return;
+                                  }
+                                  setPaymentError("");
+                                  setPaymentFile(file);
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setPaymentPreview(reader.result as string);
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
+                        ) : (
+                          <div className="border border-emerald-500/40 bg-emerald-500/[0.04] rounded-2xl p-4 transition-all">
+                            <div className="flex items-center gap-3">
+                              {paymentPreview && paymentFile.type.startsWith("image/") ? (
+                                <div className="w-16 h-16 rounded-xl overflow-hidden border border-emerald-500/30 shrink-0 bg-black/40">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={paymentPreview}
+                                    alt="Payment screenshot"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                                  <Check className="w-7 h-7" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs mb-0.5">
+                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                  <span>Screenshot Attached</span>
+                                </div>
+                                <p className="text-xs text-white truncate font-medium">
+                                  {paymentFile.name}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  {(paymentFile.size / 1024).toFixed(1)} KB • Ready to submit
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPaymentFile(null);
+                                  setPaymentPreview(null);
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs text-slate-300 font-mono transition-colors"
+                              >
+                                Change
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {paymentError && (
+                          <div className="flex items-center gap-2 text-red-400 text-xs mt-2 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl">
+                            <AlertCircle className="w-4 h-4 shrink-0" />
+                            <span>{paymentError}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white/5 border border-white/5 text-[11px] text-slate-400 flex items-start gap-2">
+                        <Lock className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+                        <span>
+                          Step 4 confirmation is locked until payment screenshot is provided to prevent spam bookings.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Controls */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-6 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="w-full sm:w-auto px-6 py-3.5 rounded-xl border border-white/10 text-slate-400 hover:text-white text-xs font-bold uppercase tracking-wider transition-all"
+                    >
+                      Back
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handlePaymentSubmit}
+                      disabled={isSubmitting || !paymentFile}
+                      className={`w-full sm:flex-1 py-4 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                        paymentFile
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-600/30 cursor-pointer"
+                          : "bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed opacity-60"
+                      }`}
+                    >
+                      {paymentFile ? (
+                        <>
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>{isSubmitting ? "Submitting Verification..." : "Submit Screenshot & Confirm Booking"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-4 h-4" />
+                          <span>Upload Screenshot to Unlock Step 4</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {step === 4 && (
+                /* STEP 4: BOOKING CONFIRMED */
+                <div className="bg-[#0b1329] border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl text-center animate-in zoom-in-95 space-y-6">
+                  <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+                    <FileCheck2 className="w-10 h-10" />
+                  </div>
+
+                  <h2 className="text-3xl md:text-4xl font-serif text-white">Booking Quote Received!</h2>
+                  <p className="text-slate-400 text-sm max-w-lg mx-auto leading-relaxed">
+                    Thank you, <strong className="text-white font-bold">{formData.name}</strong>. Your custom package has been reserved with Quote ID:
+                  </p>
+
+                  <div className="inline-block bg-white/5 border border-white/10 px-8 py-3.5 rounded-2xl">
+                    <span className="font-mono text-2xl font-bold text-amber-300 tracking-wider">
+                      {quoteId}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Our Junagadh Studio management team is reviewing your date and details. We will contact you on WhatsApp at{" "}
+                    <strong className="text-white">{formData.phone}</strong> shortly.
+                  </p>
+
+                  {/* WhatsApp Quick Link */}
+                  <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
+                    <a
+                      href={`https://wa.me/919876543210?text=${encodeURIComponent(
+                        `Hello Vrundavan Studio Junagadh! I have created a custom booking quote ${quoteId} for my wedding on ${formData.date}. Total investment: ₹${total.toLocaleString(
+                          "en-IN"
+                        )}. Please confirm team assignment.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/30"
+                    >
+                      <Send className="w-4 h-4" />
+                      Chat with Studio on WhatsApp
+                    </a>
+
+                    <button
+                      onClick={() => {
+                        setStep(1);
+                        setIncludePreWedding(false);
+                        setEventSelections({ wedding: { photo: true, video: true } });
+                        setEventDrones({});
+                      }}
+                      className="inline-flex items-center justify-center px-6 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs uppercase tracking-wider border border-white/10 transition-all"
+                    >
+                      Create Another Package
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-200 mb-5">
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Discount Code" 
-                    value={discountCode}
-                    onChange={(e) => {
-                      setDiscountCode(e.target.value);
-                      if (discountStatus !== 'idle') {
-                        setDiscountStatus('idle');
-                        setDiscountMessage('');
-                      }
-                    }}
-                    className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:border-[#003366] uppercase font-mono"
-                  />
-                  <button 
-                    onClick={handleApplyDiscount}
-                    disabled={discountStatus === 'loading' || !discountCode}
-                    className="bg-[#003366] text-white px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-50"
-                  >
-                    {discountStatus === 'loading' ? '...' : 'Apply'}
-                  </button>
+            {/* Right 4 Columns: Sticky Summary Card ("Your Custom Blueprint") */}
+            <div className="lg:col-span-4 sticky top-28 space-y-6">
+              <div className="bg-[#0b1329] rounded-3xl border border-white/10 p-6 md:p-7 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+                <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-5">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-mono text-xs uppercase tracking-[0.2em] font-bold text-white">
+                      Your Blueprint
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {selectedItemsList.length} Selected
+                  </span>
                 </div>
-                {discountMessage && (
-                  <p className={`text-[10px] mt-1.5 font-bold ${discountStatus === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                    {discountMessage}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Estimated Total</span>
-                <span className="text-4xl font-serif text-[#1a1a1a] font-normal flex items-center gap-3">
-                  ₹{resumedOrder && resumedOrder.total_amount ? Number(resumedOrder.total_amount).toLocaleString('en-IN') : calculateTotal.toLocaleString('en-IN')}
-                  {!resumedOrder && appliedDiscount && (
-                    <span className="text-sm line-through text-slate-400">
-                      ₹{(() => {
-                        // Recalculate without discount just for the original price display
-                        let rawTotal = 0;
-                        const numEvents = selectedEvents.length;
-                        selectedEvents.forEach(id => { rawTotal += EVENTS.find(e => e.id === id)?.price || 0; });
-                        selectedServices.forEach(id => { const s = SERVICES.find(x => x.id === id); if(s) rawTotal += s.price * (numEvents > 0 ? numEvents : 1); });
-                        selectedAddons.forEach(id => { rawTotal += ADDONS.find(a => a.id === id)?.price || 0; });
-                        return rawTotal;
-                      })().toLocaleString('en-IN')}
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              {step === 1 ? (
-                <button
-                  onClick={handleStartPlanning}
-                  disabled={isSubmitting || (!formData.email && !formData.phone)}
-                  className="w-full py-3.5 rounded-2xl font-serif text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-[#003366] text-white hover:bg-[#002244] shadow-[0_10px_20px_rgba(0,51,102,0.2)] hover:shadow-[0_15px_25px_rgba(0,51,102,0.3)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
-                >
-                  <span>{isSubmitting ? 'Starting...' : 'Start Planning'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : step === 2 ? (
-                <button
-                  onClick={handleNextToDetails}
-                  className="w-full py-3.5 rounded-2xl font-serif text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-[#003366] text-white hover:bg-[#002244] shadow-[0_10px_20px_rgba(0,51,102,0.2)] hover:shadow-[0_15px_25px_rgba(0,51,102,0.3)] hover:-translate-y-0.5"
-                >
-                  <span>Next Step</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : step === 3 ? (
-                <button
-                  onClick={handleCreateOrder}
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 rounded-2xl font-serif text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-[#003366] text-white hover:bg-[#002244] shadow-[0_10px_20px_rgba(0,51,102,0.2)] disabled:opacity-50 disabled:hover:translate-y-0"
-                >
-                  <span>{isSubmitting ? 'Saving Quote...' : 'Generate Quote & Save'}</span>
-                </button>
-              ) : step === 4 ? (
-                <button
-                  onClick={handlePaymentSubmit}
-                  disabled={isSubmitting || !paymentFile}
-                  className="w-full py-3.5 rounded-2xl font-serif text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700 shadow-[0_10px_20px_rgba(5,150,105,0.2)] hover:shadow-[0_15px_25px_rgba(5,150,105,0.3)] hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
-                >
-                  <Check className="w-4 h-4" strokeWidth={3} />
-                  <span className="font-sans font-bold">{isSubmitting ? 'Submitting...' : 'Submit for Verification'}</span>
-                </button>
-              ) : null}
-              <div className="flex items-center justify-center gap-2 text-slate-400 font-mono text-[8px] uppercase tracking-widest text-center px-4 mt-4">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>Estimate subject to date availability</span>
+                {/* Selected Items Breakdown */}
+                <div className="space-y-3 mb-6 max-h-[350px] overflow-y-auto pr-1">
+                  {selectedItemsList.length === 0 ? (
+                    <div className="text-center py-10 text-slate-500 text-xs">
+                      No events or services selected yet. Choose ceremonies on the left to start building.
+                    </div>
+                  ) : (
+                    selectedItemsList.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/5 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <span className="text-white font-medium block leading-tight">
+                            {item.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-amber-400/80">
+                            {item.type}
+                          </span>
+                        </div>
+                        <span className="font-serif font-bold text-slate-200 shrink-0">
+                          ₹{item.price.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Discount Code Input */}
+                <div className="pt-4 border-t border-white/10 space-y-2 mb-6">
+                  <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
+                    Promo Code / Voucher
+                  </span>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                      <input
+                        type="text"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        placeholder="Try: SUMMER20"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-xs font-mono uppercase text-white placeholder:text-slate-500 focus:outline-none focus:border-[#003366]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplyDiscount}
+                      disabled={discountStatus === "loading" || !discountCode.trim()}
+                      className="px-4 py-2.5 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-xs font-bold uppercase disabled:opacity-50 transition-all"
+                    >
+                      {discountStatus === "loading" ? "..." : "Apply"}
+                    </button>
+                  </div>
+                  {discountMessage && (
+                    <p
+                      className={`text-[10px] font-mono font-bold ${
+                        discountStatus === "success" ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {discountMessage}
+                    </p>
+                  )}
+                </div>
+
+                {/* Pricing Totals */}
+                <div className="pt-4 border-t border-white/10 space-y-2.5 mb-6 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Subtotal</span>
+                    <span className="font-mono">₹{subtotal.toLocaleString("en-IN")}</span>
+                  </div>
+
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span>Discount ({appliedDiscount?.code})</span>
+                      <span className="font-mono">-₹{discountAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-baseline pt-2 border-t border-white/10">
+                    <span className="text-sm font-bold text-white uppercase tracking-wider">
+                      Total Investment
+                    </span>
+                    <div className="text-right">
+                      <span className="text-3xl font-serif font-bold text-amber-300">
+                        ₹{total.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mt-3 space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold text-amber-300">
+                      <span>Token Advance to Reserve</span>
+                      <span>₹5,000</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>Balance on Shoot Day</span>
+                      <span>₹{Math.max(0, total - 5000).toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action CTA */}
+                {step === 1 && (
+                  <button
+                    type="button"
+                    onClick={handleProceedToDetails}
+                    disabled={selectedItemsList.length === 0}
+                    className="w-full py-4 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-[#003366]/40 flex items-center justify-center gap-2 disabled:opacity-40"
+                  >
+                    <span>Proceed to Book (Step 2)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+
+                <div className="flex items-center justify-center gap-2 text-slate-500 text-[10px] uppercase font-mono tracking-widest text-center mt-4">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>100% Guaranteed Studio Dates</span>
+                </div>
+              </div>
+
+              {/* Studio Info Card */}
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 text-xs text-slate-400 space-y-2">
+                <div className="flex items-center gap-2 text-white font-bold">
+                  <Award className="w-4 h-4 text-amber-400" />
+                  <span>Vrundavan Studio Junagadh</span>
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  Shop No. A17, Cosmic Complex, Zanzarda Chowkdi, Junagadh.
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Custom rates are per our studio official price card. Travel charges outside Junagadh district are extra.
+                </p>
               </div>
             </div>
           </div>
-        </div>
         )}
-
       </section>
 
       <ContactSection />

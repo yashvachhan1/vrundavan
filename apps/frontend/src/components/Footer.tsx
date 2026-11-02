@@ -10,8 +10,8 @@ const STUDIO = {
   email: "info@vrundavanstudio.com",
   phoneLabel: "+91 99999 99999",
   phoneHref: "tel:+919999999999",
-  instagram: "https://instagram.com",
-  instagramHandle: "@vrundavan_studio",
+  instagram: "https://www.instagram.com/vrundavan_studio_junagadh?mdxt=MXNqbDgxbGp0aXU1Nw==",
+  instagramHandle: "@vrundavan_studio_junagadh",
 };
 
 const SHOOT_LOCATIONS = ["Rajkot", "Udaipur", "Ahmedabad", "Dubai"];

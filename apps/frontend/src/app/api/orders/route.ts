@@ -1,28 +1,37 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '../../../../utils/supabase/server';
 
-// In-memory store for orders to allow local testing while database is unreachable
-// In production, this would be a Supabase table.
+// In-memory store for orders to allow local testing and immediate availability
 const mockOrders = [
   {
     id: 'ORD-001',
+    quote_id: 'VRUN-7A1B',
     customer: 'Rahul Verma',
     phone: '+91 98765 43210',
     email: 'rahul@example.com',
-    package: 'Complete Wedding Package',
+    package: 'Custom Plan: Wedding Day (Photo + Video - ₹50,000), Drone Aerial Coverage (1 Day - ₹10,000)',
+    total_amount: 60000,
+    location: 'Junagadh',
     date: '2026-08-15',
     status: 'pending',
-    amountPaid: '₹5,000'
+    amountPaid: '5000',
+    assignedTeam: [],
+    created_at: new Date().toISOString()
   },
   {
     id: 'ORD-002',
+    quote_id: 'VRUN-8C2D',
     customer: 'Sneha Patel',
     phone: '+91 87654 32109',
     email: 'sneha@example.com',
-    package: 'Pre-Wedding Shoot',
+    package: 'Custom Plan: Pre-Wedding Shoot (₹15,000), Engagement Ceremony (Photo Only - ₹11,500)',
+    total_amount: 26500,
+    location: 'Rajkot',
     date: '2026-08-12',
     status: 'confirmed',
     assignedTeam: [],
-    amountPaid: '₹5,000'
+    amountPaid: '5000',
+    created_at: new Date().toISOString()
   }
 ];
 
@@ -40,31 +49,104 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get('q')?.trim().toLowerCase();
+
+  // If query is provided, find matching order
+  if (q) {
+    const memoryMatch = (global as any).ordersStore.find((o: any) => 
+      o.id?.toLowerCase() === q ||
+      o.quote_id?.toLowerCase() === q ||
+      o.email?.toLowerCase() === q ||
+      o.phone?.replace(/\s+/g, '') === q.replace(/\s+/g, '')
+    );
+
+    if (memoryMatch) {
+      return NextResponse.json({ order: memoryMatch }, { headers: corsHeaders });
+    }
+
+    try {
+      const supabase = await createClient();
+      if (supabase) {
+        const { data } = await supabase
+          .from('orders')
+          .select('*')
+          .or(`quote_id.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%,id.eq.${q}`)
+          .limit(1);
+
+        if (data && data.length > 0) {
+          return NextResponse.json({ order: data[0] }, { headers: corsHeaders });
+        }
+      }
+    } catch (err) {
+      console.warn("Supabase lookup fallback error:", err);
+    }
+
+    return NextResponse.json({ error: 'Order not found' }, { status: 404, headers: corsHeaders });
+  }
+
+  // Return full store
   return NextResponse.json((global as any).ordersStore, { headers: corsHeaders });
 }
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    const shortId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const quoteId = data.quote_id || `VRUN-${shortId}`;
+    const orderId = `ORD-${String((global as any).ordersStore.length + 1).padStart(3, '0')}`;
+
     const newOrder = {
-      id: `ORD-${String((global as any).ordersStore.length + 1).padStart(3, '0')}`,
-      customer: data.name,
+      id: orderId,
+      quote_id: quoteId,
+      customer: data.customer || data.name,
       phone: data.phone,
       email: data.email,
       package: data.package,
+      total_amount: data.total_amount || 0,
+      location: data.location || '',
       date: data.date,
-      status: 'pending',
-      amountPaid: '₹5,000', // Hardcoded advance amount for now
+      status: data.status || 'pending_payment',
+      amountPaid: data.amountPaid || '0',
+      payment_screenshot_url: data.payment_screenshot_url || null,
       assignedTeam: [],
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString()
     };
     
-    (global as any).ordersStore.push(newOrder);
+    // Always store in memory store
+    (global as any).ordersStore.unshift(newOrder);
+
+    // Attempt to persist in Supabase if reachable
+    try {
+      const supabase = await createClient();
+      if (supabase) {
+        const { data: dbOrder, error: dbError } = await supabase.from('orders').insert([{
+          customer: newOrder.customer,
+          phone: newOrder.phone,
+          email: newOrder.email,
+          package: newOrder.package,
+          date: newOrder.date,
+          status: newOrder.status,
+          amountPaid: String(newOrder.amountPaid),
+          total_amount: newOrder.total_amount,
+          quote_id: newOrder.quote_id,
+          location: newOrder.location,
+          payment_screenshot_url: newOrder.payment_screenshot_url
+        }]).select().single();
+
+        if (!dbError && dbOrder) {
+          newOrder.id = dbOrder.id;
+          (global as any).ordersStore[0] = { ...newOrder, ...dbOrder };
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Supabase insert fallback (using memory store):", dbErr);
+    }
     
     return NextResponse.json({ success: true, order: newOrder }, { headers: corsHeaders });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 400, headers: corsHeaders });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Failed to create order' }, { status: 400, headers: corsHeaders });
   }
 }
 
@@ -73,15 +155,33 @@ export async function PUT(request: Request) {
     const data = await request.json();
     const { id, updates } = data;
     
-    const orderIndex = (global as any).ordersStore.findIndex((o: any) => o.id === id);
+    const orderIndex = (global as any).ordersStore.findIndex((o: any) => o.id === id || o.quote_id === id);
     if (orderIndex === -1) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404, headers: corsHeaders });
+      const fallbackOrder = {
+        id,
+        quote_id: id,
+        ...updates,
+        created_at: new Date().toISOString()
+      };
+      (global as any).ordersStore.unshift(fallbackOrder);
+      return NextResponse.json({ success: true, order: fallbackOrder }, { headers: corsHeaders });
     }
     
     (global as any).ordersStore[orderIndex] = { ...(global as any).ordersStore[orderIndex], ...updates };
+
+    // Try updating Supabase
+    try {
+      const supabase = await createClient();
+      if (supabase) {
+        await supabase.from('orders').update(updates).eq('id', id);
+      }
+    } catch (dbErr) {
+      console.warn("Supabase update fallback:", dbErr);
+    }
     
     return NextResponse.json({ success: true, order: (global as any).ordersStore[orderIndex] }, { headers: corsHeaders });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update order' }, { status: 400, headers: corsHeaders });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Failed to update order' }, { status: 400, headers: corsHeaders });
   }
 }
+

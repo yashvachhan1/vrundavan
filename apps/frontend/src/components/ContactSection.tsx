@@ -65,7 +65,7 @@ export function ContactSection() {
             </a>
 
             {/* Instagram */}
-            <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group cursor-pointer">
+            <a href="https://www.instagram.com/vrundavan_studio_junagadh?mdxt=MXNqbDgxbGp0aXU1Nw==" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group cursor-pointer">
               <div className="w-12 h-12 flex-shrink-0 rounded-full border border-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors duration-300">
                 <svg className="w-4 h-4 text-primary group-hover:text-white fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
@@ -78,7 +78,7 @@ export function ContactSection() {
                   Instagram
                 </span>
                 <span className="text-sm font-semibold text-foreground">
-                  @vrundavan_studio
+                  @vrundavan_studio_junagadh
                 </span>
               </div>
             </a>

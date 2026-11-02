@@ -42,10 +42,12 @@ export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
   const navLinks = [
     { name: "Home", href: "/#home" },
     { name: "Services", href: "/#services" },
+    { name: "Packages", href: "/#packages" },
+    { name: "Custom Plan", href: "/custom-plan" },
     { name: "Gallery", href: "/#gallery" },
-    { name: "Testimonials", href: "/#testimonials" },
     { name: "Contact", href: "/#contact" },
   ];
+
 
   return (
     <>
