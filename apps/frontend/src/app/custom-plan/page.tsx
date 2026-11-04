@@ -434,6 +434,17 @@ export default function CustomPlanBuilder() {
       appliedDiscount
     ]);
 
+  // Advance Token Rule:
+  // If total >= 1,00,000 (100k+) -> Advance is ₹10,000
+  // If total < 1,00,000 (e.g. 50k, 23k, etc.) -> Advance is ₹5,000
+  const advanceTokenAmount = useMemo(() => {
+    return total >= 100000 ? 10000 : 5000;
+  }, [total]);
+
+  const balanceOnShoot = useMemo(() => {
+    return Math.max(0, total - advanceTokenAmount);
+  }, [total, advanceTokenAmount]);
+
   // Handle Discount Application
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) return;
@@ -594,7 +605,7 @@ export default function CustomPlanBuilder() {
         id: orderId || quoteId,
         updates: {
           status: "pending",
-          amountPaid: "5000",
+          amountPaid: String(advanceTokenAmount),
           payment_screenshot_url: screenshotUrl || paymentPreview || "uploaded"
         }
       };
@@ -870,7 +881,7 @@ export default function CustomPlanBuilder() {
                       }}
                       className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase tracking-wider text-xs transition-all shadow-lg"
                     >
-                      Pay ₹5,000 Advance Token Now
+                      Pay ₹{((Number(resumedOrder.total_amount) || total) >= 100000 ? 10000 : 5000).toLocaleString("en-IN")} Advance Token Now
                     </button>
                   )}
                 </div>
@@ -1533,8 +1544,11 @@ export default function CustomPlanBuilder() {
                     <h2 className="text-3xl font-serif text-white">Payment &amp; Screenshot Verification</h2>
                     <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto">
                       Transfer the advance token of{" "}
-                      <strong className="text-amber-300 font-bold">₹5,000</strong> (or full investment{" "}
-                      <strong className="text-white font-bold">₹{total.toLocaleString("en-IN")}</strong>) via UPI, then upload the payment screenshot to proceed.
+                      <strong className="text-amber-300 font-bold">₹{advanceTokenAmount.toLocaleString("en-IN")}</strong>{" "}
+                      <span className="text-[11px] text-slate-400">
+                        ({total >= 100000 ? "₹10,000 for events ₹1L+" : "₹5,000 for events under ₹1L"})
+                      </span>{" "}
+                      (or full investment <strong className="text-white font-bold">₹{total.toLocaleString("en-IN")}</strong>) via UPI, then upload the payment screenshot to proceed.
                     </p>
 
                     <div className="inline-flex items-center gap-3 bg-white/5 border border-white/10 px-5 py-2.5 rounded-2xl mt-4">
@@ -1566,7 +1580,7 @@ export default function CustomPlanBuilder() {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(
-                                `upi://pay?pa=vrundavanstudio@upi&pn=VrundavanStudio&am=5000&cu=INR`
+                                `upi://pay?pa=vrundavanstudio@upi&pn=VrundavanStudio&am=${advanceTokenAmount}&cu=INR`
                               )}`}
                               alt="Vrundavan Studio UPI QR"
                               className="w-28 h-28 object-contain"
@@ -1614,13 +1628,20 @@ export default function CustomPlanBuilder() {
                             </span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-white/5">
-                            <span className="text-slate-400">Advance Token to Lock Dates</span>
-                            <span className="font-mono text-emerald-400 font-bold">₹5,000</span>
+                            <div>
+                              <span className="text-slate-400 block">Advance Token to Lock Dates</span>
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                {total >= 100000 ? "Grand Event (≥ ₹1L) → ₹10,000" : "Standard Plan (< ₹1L) → ₹5,000"}
+                              </span>
+                            </div>
+                            <span className="font-mono text-emerald-400 font-bold text-sm">
+                              ₹{advanceTokenAmount.toLocaleString("en-IN")}
+                            </span>
                           </div>
                           <div className="flex justify-between py-1 border-b border-white/5">
                             <span className="text-slate-400">Remaining Balance on Shoot</span>
                             <span className="font-mono text-slate-300 font-medium">
-                              ₹{Math.max(0, total - 5000).toLocaleString("en-IN")}
+                              ₹{balanceOnShoot.toLocaleString("en-IN")}
                             </span>
                           </div>
                         </div>
@@ -1644,7 +1665,7 @@ export default function CustomPlanBuilder() {
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 mb-3">
-                          Please attach screenshot of your advance transfer. Booking will only proceed after verification.
+                          Please attach screenshot of your ₹{advanceTokenAmount.toLocaleString("en-IN")} advance transfer. Booking will only proceed after verification.
                         </p>
 
                         {!paymentFile ? (
@@ -1946,12 +1967,17 @@ export default function CustomPlanBuilder() {
 
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 mt-3 space-y-1">
                     <div className="flex justify-between text-[11px] font-bold text-amber-300">
-                      <span>Token Advance to Reserve</span>
-                      <span>₹5,000</span>
+                      <div>
+                        <span>Token Advance to Reserve</span>
+                        <span className="block text-[9px] text-slate-400 font-normal">
+                          {total >= 100000 ? "Grand Event (₹1L+)" : "Standard Plan (<₹1L)"}
+                        </span>
+                      </div>
+                      <span className="text-sm font-mono">₹{advanceTokenAmount.toLocaleString("en-IN")}</span>
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400">
+                    <div className="flex justify-between text-[10px] text-slate-400 pt-1 border-t border-amber-500/10">
                       <span>Balance on Shoot Day</span>
-                      <span>₹{Math.max(0, total - 5000).toLocaleString("en-IN")}</span>
+                      <span className="font-mono text-slate-300">₹{balanceOnShoot.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
                 </div>

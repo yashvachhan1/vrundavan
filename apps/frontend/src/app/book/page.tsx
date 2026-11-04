@@ -127,13 +127,19 @@ export default function BookingPage() {
     try {
       if (!supabase) throw new Error('Supabase client not initialized');
       
+      const packagePrice = formData.package.includes("Masterpiece") || formData.package.includes("1,75,000")
+        ? 175000
+        : formData.package.includes("Intimate") || formData.package.includes("85,000")
+        ? 85000
+        : 55000;
+
       const { data, error } = await supabase.from('orders').insert([{
         customer: formData.name,
         email: formData.email,
         phone: formData.phone,
         package: formData.package,
         date: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
-        total_amount: 55000, // Dummy total amount for standard packages
+        total_amount: packagePrice,
         status: 'pending_payment',
         amountPaid: '0'
       }]).select().single();
@@ -180,7 +186,14 @@ export default function BookingPage() {
         screenshotUrl = publicUrl;
       }
       
-      const updatePayload: any = { status: 'pending', amountPaid: '5000' };
+      const currentPkg = resumedOrder?.package || formData.package;
+      const currentPkgPrice = currentPkg.includes("Masterpiece") || currentPkg.includes("1,75,000")
+        ? 175000
+        : currentPkg.includes("Intimate") || currentPkg.includes("85,000")
+        ? 85000
+        : 55000;
+      const advanceRequired = currentPkgPrice >= 100000 ? 10000 : 5000;
+      const updatePayload: any = { status: 'pending', amountPaid: String(advanceRequired) };
       if (screenshotUrl) {
         updatePayload.payment_screenshot_url = screenshotUrl;
       }
@@ -424,7 +437,13 @@ export default function BookingPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-amber-900 mb-1">Advance Payment Required</h3>
-                    <p className="text-amber-700/80 text-sm leading-relaxed">To officially block your dates and confirm our team, an advance token amount of <strong className="font-bold">₹5,000</strong> is required. Please transfer via UPI/Bank and upload the screenshot below.</p>
+                    <p className="text-amber-700/80 text-sm leading-relaxed">
+                      To officially block your dates and confirm our team, an advance token amount of{" "}
+                      <strong className="font-bold">
+                        ₹{((formData.package.includes("Masterpiece") || formData.package.includes("1,75,000")) ? 10000 : 5000).toLocaleString("en-IN")}
+                      </strong>{" "}
+                      is required. Please transfer via UPI/Bank and upload the screenshot below.
+                    </p>
                   </div>
                 </div>
 

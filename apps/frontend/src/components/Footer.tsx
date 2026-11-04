@@ -48,13 +48,13 @@ export function Footer() {
               the "Junagadh" text beneath it. A plain square box shows the
               whole lockup at a readable size instead.
             */}
-            <div className="relative w-20 h-20">
+            <div className="relative w-20 h-16">
               <Image
                 unoptimized
-                src="/logo.png"
+                src="/mini-logo.png"
                 alt="Vrundavan Studio"
                 fill
-                className="object-contain brightness-0 invert"
+                className="object-contain"
               />
             </div>
             <p className="text-sm leading-relaxed text-white/60 max-w-xs">

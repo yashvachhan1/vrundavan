@@ -77,17 +77,17 @@ export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
         }`}
       />
 
-      <div className="relative z-10 w-full px-4 md:px-8 flex items-center justify-between">
+      <div className="relative z-10 max-w-[1440px] mx-auto w-full px-6 flex items-center justify-between">
         
         {/* Left: Dynamic transparent logo */}
-        <a href="#home" className="flex items-center group">
-          <div className="relative w-48 h-16 md:w-52 md:h-16 ml-[-48px] flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.02]">
+        <a href="/" className="flex items-center group">
+          <div className="relative w-16 h-12 md:w-20 md:h-14 flex items-center justify-center transition-transform duration-300 group-hover:scale-[1.03]">
             <Image
               unoptimized
-              src="/logo.png"
+              src="/mini-logo.png"
               alt="Vrundavan Studio Logo"
               fill
-              className="object-contain scale-[1.65] brightness-0 invert"
+              className="object-contain"
               priority
             />
           </div>
@@ -159,13 +159,13 @@ export function Header({ forceSolid = false }: { forceSolid?: boolean }) {
           {/* Sidebar Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/50">
             {/* Logo */}
-            <div className="relative w-32 h-10 ml-[-20px] flex items-center justify-center">
+            <div className="relative w-16 h-12 flex items-center justify-center">
               <Image
                 unoptimized
-                src="/logo.png"
+                src="/mini-logo.png"
                 alt="Vrundavan Studio Logo"
                 fill
-                className="object-contain scale-[1.65] mix-blend-multiply"
+                className="object-contain"
                 priority
               />
             </div>
