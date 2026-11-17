@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_PACKAGES } from '../lib/mockData';
 import { Plus, X, Loader2, Package as PackageIcon } from 'lucide-react';
 import type { BundledPackage, NewBundledPackage } from '../components/packages/types';
 import PackageCard from '../components/packages/PackageCard';
@@ -19,19 +20,28 @@ export default function Packages() {
   const fetchPackages = async () => {
     setLoading(true);
     setError(null);
+    let loaded: BundledPackage[] = [];
     try {
       const { data, error: fetchError } = await supabase
         .from('bundled_packages')
         .select('*')
         .order('created_at', { ascending: true });
         
-      if (fetchError) throw fetchError;
-      if (data) setPackages(data as BundledPackage[]);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch packages');
-    } finally {
-      setLoading(false);
+      if (!fetchError && data && data.length > 0) {
+        loaded = data as BundledPackage[];
+      }
+    } catch {
+      // Supabase offline
     }
+
+    if (loaded.length === 0) {
+      const local = localStorage.getItem('vrundavan_bundled_packages');
+      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PACKAGES as any);
+      localStorage.setItem('vrundavan_bundled_packages', JSON.stringify(loaded));
+    }
+
+    setPackages(loaded);
+    setLoading(false);
   };
 
   const handleAddPackage = async (newPackage: NewBundledPackage) => {

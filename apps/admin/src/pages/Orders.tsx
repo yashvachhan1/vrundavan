@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_ORDERS, DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
 // Custom Multi-Select Dropdown Component
 function MultiSelectDropdown({ options, selected, onChange }: { options: string[], selected: string[], onChange: (selected: string[]) => void }) {
@@ -113,13 +114,32 @@ export default function Orders() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [ordersRes, teamRes] = await Promise.all([
-      supabase.from('orders').select('*').order('created_at', { ascending: false }),
-      supabase.from('team_members').select('*')
-    ]);
-    
-    if (ordersRes.data) setOrders(ordersRes.data);
-    if (teamRes.data) setTeamMembers(teamRes.data);
+    let loadedOrders: any[] = [];
+    let loadedTeam: any[] = [];
+    try {
+      const [ordersRes, teamRes] = await Promise.all([
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('team_members').select('*')
+      ]);
+      if (ordersRes.data && ordersRes.data.length > 0) loadedOrders = ordersRes.data;
+      if (teamRes.data && teamRes.data.length > 0) loadedTeam = teamRes.data;
+    } catch {
+      // Supabase offline/paused
+    }
+
+    if (loadedOrders.length === 0) {
+      const local = localStorage.getItem('vrundavan_orders');
+      loadedOrders = local ? JSON.parse(local) : DEFAULT_MOCK_ORDERS;
+    }
+    if (loadedTeam.length === 0) {
+      const local = localStorage.getItem('vrundavan_team');
+      loadedTeam = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+    }
+
+    setOrders(loadedOrders);
+    setTeamMembers(loadedTeam);
+    localStorage.setItem('vrundavan_orders', JSON.stringify(loadedOrders));
+    localStorage.setItem('vrundavan_team', JSON.stringify(loadedTeam));
     setIsLoading(false);
   };
 
@@ -132,8 +152,13 @@ export default function Orders() {
     try {
       await supabase.from('orders').update(updates).eq('id', orderId);
     } catch (err) {
-      console.error("Error updating order:", err);
+      console.error("Error updating order in Supabase:", err);
     }
+    setOrders(prev => {
+      const next = prev.map(o => o.id === orderId ? { ...o, ...updates } : o);
+      localStorage.setItem('vrundavan_orders', JSON.stringify(next));
+      return next;
+    });
   };
 
   const handleSendEmail = (order: Order, type: string, customMessage?: string) => {

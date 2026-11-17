@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_PLAN_ITEMS } from '../lib/mockData';
 import { Plus, Trash2, Check, X, Loader2, Camera, Video, MonitorPlay, Box, IndianRupee, ArrowRight } from 'lucide-react';
 
 type PlanItemType = 'event' | 'service' | 'addon';
@@ -37,6 +38,7 @@ export default function CustomPlanItems() {
   const fetchItems = async () => {
     setLoading(true);
     setError(null);
+    let loaded: PlanItem[] = [];
     try {
       const { data, error: fetchError } = await supabase
         .from('custom_plan_items')
@@ -44,13 +46,21 @@ export default function CustomPlanItems() {
         .order('type', { ascending: true })
         .order('created_at', { ascending: false });
         
-      if (fetchError) throw fetchError;
-      if (data) setItems(data as PlanItem[]);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch items.");
-    } finally {
-      setLoading(false);
+      if (!fetchError && data && data.length > 0) {
+        loaded = data as PlanItem[];
+      }
+    } catch {
+      // Supabase offline
     }
+
+    if (loaded.length === 0) {
+      const local = localStorage.getItem('vrundavan_custom_plan_items');
+      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PLAN_ITEMS as any);
+      localStorage.setItem('vrundavan_custom_plan_items', JSON.stringify(loaded));
+    }
+
+    setItems(loaded);
+    setLoading(false);
   };
 
   const handleAddItem = async () => {

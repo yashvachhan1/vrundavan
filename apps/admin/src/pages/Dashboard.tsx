@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Users, Package, Calendar, TrendingUp, RefreshCcw } from 'lucide-react';
+import { Users, Package, Calendar, TrendingUp, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_ORDERS } from '../lib/mockData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUsingDemo, setIsUsingDemo] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -13,10 +15,33 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
-    const { data } = await supabase.from('orders').select('*');
-    if (data) {
-      setOrders(data);
+    let loadedOrders: any[] = [];
+    try {
+      const { data, error } = await supabase.from('orders').select('*');
+      if (data && data.length > 0 && !error) {
+        loadedOrders = data;
+        setIsUsingDemo(false);
+      }
+    } catch {
+      // Supabase connection error
     }
+
+    if (loadedOrders.length === 0) {
+      const local = localStorage.getItem('vrundavan_orders');
+      if (local) {
+        try {
+          loadedOrders = JSON.parse(local);
+        } catch {
+          loadedOrders = DEFAULT_MOCK_ORDERS;
+        }
+      } else {
+        loadedOrders = DEFAULT_MOCK_ORDERS;
+        localStorage.setItem('vrundavan_orders', JSON.stringify(DEFAULT_MOCK_ORDERS));
+      }
+      setIsUsingDemo(true);
+    }
+
+    setOrders(loadedOrders);
     setIsLoading(false);
   };
 
@@ -78,6 +103,30 @@ export default function Dashboard() {
           <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Data
         </button>
       </div>
+
+      {isUsingDemo && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between text-amber-900 text-xs shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900">Showing Demo Studio Data (Supabase Paused or Disconnected)</p>
+              <p className="text-amber-800">
+                Aapka Supabase database inactive hone ki wajah se pause ho sakta hai. Live data sync karne ke liye Supabase Dashboard mein jakar <strong>Restore / Resume Project</strong> karein.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://supabase.com/dashboard"
+            target="_blank"
+            rel="noreferrer"
+            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition-all shrink-0 ml-4"
+          >
+            Open Supabase
+          </a>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">

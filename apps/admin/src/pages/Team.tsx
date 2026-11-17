@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Edit2, Phone, Camera, User, Calendar as CalendarIcon, History, Plus, ArrowLeft, Filter, X, Video, Settings, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
 const iconMap: Record<string, any> = {
   Camera: Camera,
@@ -35,15 +36,32 @@ export default function Team() {
 
   async function fetchData() {
     setIsLoading(true);
-    const [membersRes, payoutsRes, rolesRes] = await Promise.all([
-      supabase.from('team_members').select('*').order('created_at', { ascending: true }),
-      supabase.from('team_payouts').select('*').order('created_at', { ascending: false }),
-      supabase.from('team_roles').select('*').order('created_at', { ascending: true })
-    ]);
-    
-    if (membersRes.data) setTeam(membersRes.data);
-    if (payoutsRes.data) setPayouts(payoutsRes.data);
-    if (rolesRes.data) setRoles(rolesRes.data);
+    let loadedTeam: any[] = [];
+    let loadedPayouts: any[] = [];
+    let loadedRoles: any[] = [];
+
+    try {
+      const [membersRes, payoutsRes, rolesRes] = await Promise.all([
+        supabase.from('team_members').select('*').order('created_at', { ascending: true }),
+        supabase.from('team_payouts').select('*').order('created_at', { ascending: false }),
+        supabase.from('team_roles').select('*').order('created_at', { ascending: true })
+      ]);
+      if (membersRes.data && membersRes.data.length > 0) loadedTeam = membersRes.data;
+      if (payoutsRes.data && payoutsRes.data.length > 0) loadedPayouts = payoutsRes.data;
+      if (rolesRes.data && rolesRes.data.length > 0) loadedRoles = rolesRes.data;
+    } catch {
+      // Supabase connection error
+    }
+
+    if (loadedTeam.length === 0) {
+      const local = localStorage.getItem('vrundavan_team');
+      loadedTeam = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+      localStorage.setItem('vrundavan_team', JSON.stringify(loadedTeam));
+    }
+
+    setTeam(loadedTeam);
+    setPayouts(loadedPayouts);
+    setRoles(loadedRoles);
     setIsLoading(false);
   }
 

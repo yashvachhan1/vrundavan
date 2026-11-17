@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IndianRupee, AlertCircle, Wallet, FileText, User, Plus, CheckCircle2, Bell, X, Upload, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_MOCK_ORDERS, DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
 interface Payout {
   id: string;
@@ -42,18 +43,33 @@ export default function Finance() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [ordersRes, teamRes, payoutsRes] = await Promise.all([
-      supabase.from('orders').select('*').order('created_at', { ascending: false }),
-      supabase.from('team_members').select('*'),
-      supabase.from('team_payouts').select('*')
-    ]);
+    let orders: any[] = [];
+    let members: any[] = [];
+    let payouts: any[] = [];
 
-    if (ordersRes.data) {
-      const orders = ordersRes.data;
-      const members = teamRes.data || [];
-      const payouts = payoutsRes.data || [];
-      
-      setTeamMembers(members);
+    try {
+      const [ordersRes, teamRes, payoutsRes] = await Promise.all([
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('team_members').select('*'),
+        supabase.from('team_payouts').select('*')
+      ]);
+      if (ordersRes.data && ordersRes.data.length > 0) orders = ordersRes.data;
+      if (teamRes.data && teamRes.data.length > 0) members = teamRes.data;
+      if (payoutsRes.data && payoutsRes.data.length > 0) payouts = payoutsRes.data;
+    } catch {
+      // Supabase connection error
+    }
+
+    if (orders.length === 0) {
+      const local = localStorage.getItem('vrundavan_orders');
+      orders = local ? JSON.parse(local) : DEFAULT_MOCK_ORDERS;
+    }
+    if (members.length === 0) {
+      const local = localStorage.getItem('vrundavan_team');
+      members = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+    }
+
+    setTeamMembers(members);
 
       const formattedFinances = orders.map(order => {
         const orderPayouts = payouts.filter(p => p.order_id === order.id).map(p => {
@@ -85,7 +101,6 @@ export default function Finance() {
       if (formattedFinances.length > 0) {
         setSelectedOrder(formattedFinances[0]);
       }
-    }
     setIsLoading(false);
   };
 
