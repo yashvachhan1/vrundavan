@@ -1,0 +1,22 @@
+[
+  {
+    "id": "rule-std-50k",
+    "min_amount": 0,
+    "max_amount": 80000,
+    "advance_amount": 5000,
+    "label": "Standard Plan (< ₹1,00,000)",
+    "is_active": true,
+    "sort_order": 1,
+    "created_at": "2026-11-17T09:27:59.387Z"
+  },
+  {
+    "id": "rule-grand-100k",
+    "min_amount": 80000,
+    "max_amount": null,
+    "advance_amount": 10000,
+    "label": "Grand Event (≥ ₹1,00,000)",
+    "is_active": true,
+    "sort_order": 2,
+    "created_at": "2026-11-17T09:27:59.389Z"
+  }
+]

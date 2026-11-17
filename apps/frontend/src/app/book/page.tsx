@@ -18,6 +18,41 @@ export default function BookingPage() {
   
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [advanceRules, setAdvanceRules] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    async function fetchRules() {
+      try {
+        const res = await fetch('/api/advance-rules');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setAdvanceRules(data);
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    fetchRules();
+  }, []);
+
+  const getAdvanceForPrice = (price: number) => {
+    const activeRules = advanceRules.filter((r: any) => r.is_active !== false);
+    if (activeRules.length === 0) {
+      return price >= 100000 ? 10000 : 5000;
+    }
+    const sorted = [...activeRules].sort((a: any, b: any) => (Number(b.min_amount) || 0) - (Number(a.min_amount) || 0));
+    for (const rule of sorted) {
+      const min = Number(rule.min_amount) || 0;
+      const max = rule.max_amount !== null && rule.max_amount !== undefined && rule.max_amount !== '' ? Number(rule.max_amount) : Infinity;
+      if (price >= min && price <= max) {
+        return Number(rule.advance_amount);
+      }
+    }
+    const fallback = sorted.find((r: any) => price >= (Number(r.min_amount) || 0)) || sorted[sorted.length - 1];
+    return Number(fallback?.advance_amount) || (price >= 100000 ? 10000 : 5000);
+  };
   
   const [formData, setFormData] = useState({
     name: '',
@@ -192,7 +227,7 @@ export default function BookingPage() {
         : currentPkg.includes("Intimate") || currentPkg.includes("85,000")
         ? 85000
         : 55000;
-      const advanceRequired = currentPkgPrice >= 100000 ? 10000 : 5000;
+      const advanceRequired = getAdvanceForPrice(currentPkgPrice);
       const updatePayload: any = { status: 'pending', amountPaid: String(advanceRequired) };
       if (screenshotUrl) {
         updatePayload.payment_screenshot_url = screenshotUrl;
@@ -440,7 +475,7 @@ export default function BookingPage() {
                     <p className="text-amber-700/80 text-sm leading-relaxed">
                       To officially block your dates and confirm our team, an advance token amount of{" "}
                       <strong className="font-bold">
-                        ₹{((formData.package.includes("Masterpiece") || formData.package.includes("1,75,000")) ? 10000 : 5000).toLocaleString("en-IN")}
+                        ₹{getAdvanceForPrice((formData.package.includes("Masterpiece") || formData.package.includes("1,75,000")) ? 175000 : (formData.package.includes("Intimate") || formData.package.includes("85,000")) ? 85000 : 55000).toLocaleString("en-IN")}
                       </strong>{" "}
                       is required. Please transfer via UPI/Bank and upload the screenshot below.
                     </p>

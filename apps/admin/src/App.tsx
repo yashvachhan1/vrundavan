@@ -14,6 +14,7 @@ import Discounts from './pages/Discounts';
 import Gallery from './pages/Gallery';
 import Videos from './pages/Videos';
 import CustomPlanItems from './pages/CustomPlanItems';
+import AdvanceRules from './pages/AdvanceRules';
 import Reels from './pages/Reels';
 
 function App() {
@@ -86,6 +87,7 @@ function App() {
           <Route path="equipment" element={<Equipment />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="plan-builder" element={<CustomPlanItems />} />
+          <Route path="advance-rules" element={<AdvanceRules />} />
           <Route path="packages" element={<Packages />} />
           <Route path="discounts" element={<Discounts />} />
           <Route path="gallery" element={<Gallery />} />

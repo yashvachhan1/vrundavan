@@ -216,6 +216,41 @@ export default function CustomPlanBuilder() {
   const [paymentError, setPaymentError] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [bookedDates, setBookedDates] = useState<string[]>([]);
+  const [advanceRules, setAdvanceRules] = useState<any[]>([]);
+
+  // Fetch advance payment limit rules configured by admin
+  useEffect(() => {
+    async function fetchRules() {
+      try {
+        const res = await fetch("/api/advance-rules");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setAdvanceRules(data);
+            return;
+          }
+        }
+      } catch (e) {
+        // Fallback to Supabase directly if api fails
+      }
+
+      if (supabase) {
+        try {
+          const { data } = await supabase
+            .from("custom_plan_advance_rules")
+            .select("*")
+            .eq("is_active", true)
+            .order("min_amount", { ascending: true });
+          if (data && data.length > 0) {
+            setAdvanceRules(data);
+          }
+        } catch (err) {
+          console.warn("Could not fetch advance rules:", err);
+        }
+      }
+    }
+    fetchRules();
+  }, [supabase]);
 
   // Fetch booked dates from database on mount
   useEffect(() => {
@@ -435,11 +470,39 @@ export default function CustomPlanBuilder() {
     ]);
 
   // Advance Token Rule:
-  // If total >= 1,00,000 (100k+) -> Advance is ₹10,000
-  // If total < 1,00,000 (e.g. 50k, 23k, etc.) -> Advance is ₹5,000
+  // Dynamically evaluated from Admin rules (e.g. 50k -> 5k, 100k -> 10k),
+  // with standard fallback: total >= 1,00,000 => 10,000, else 5,000
+  const matchedAdvanceRule = useMemo(() => {
+    const activeRules = (advanceRules || []).filter((r: any) => r.is_active !== false);
+    if (activeRules.length === 0) return null;
+
+    // Sort descending by min_amount to match the highest applicable slab first
+    const sorted = [...activeRules].sort(
+      (a: any, b: any) => (Number(b.min_amount) || 0) - (Number(a.min_amount) || 0)
+    );
+
+    for (const rule of sorted) {
+      const min = Number(rule.min_amount) || 0;
+      const max =
+        rule.max_amount !== null &&
+        rule.max_amount !== undefined &&
+        rule.max_amount !== ""
+          ? Number(rule.max_amount)
+          : Infinity;
+      if (total >= min && total <= max) {
+        return rule;
+      }
+    }
+
+    return sorted.find((r: any) => total >= (Number(r.min_amount) || 0)) || sorted[sorted.length - 1];
+  }, [total, advanceRules]);
+
   const advanceTokenAmount = useMemo(() => {
+    if (matchedAdvanceRule && matchedAdvanceRule.advance_amount !== undefined) {
+      return Number(matchedAdvanceRule.advance_amount);
+    }
     return total >= 100000 ? 10000 : 5000;
-  }, [total]);
+  }, [total, matchedAdvanceRule]);
 
   const balanceOnShoot = useMemo(() => {
     return Math.max(0, total - advanceTokenAmount);
@@ -881,7 +944,7 @@ export default function CustomPlanBuilder() {
                       }}
                       className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase tracking-wider text-xs transition-all shadow-lg"
                     >
-                      Pay ₹{((Number(resumedOrder.total_amount) || total) >= 100000 ? 10000 : 5000).toLocaleString("en-IN")} Advance Token Now
+                      Pay ₹{(Number(resumedOrder.amountPaid) || advanceTokenAmount).toLocaleString("en-IN")} Advance Token Now
                     </button>
                   )}
                 </div>
@@ -1546,7 +1609,7 @@ export default function CustomPlanBuilder() {
                       Transfer the advance token of{" "}
                       <strong className="text-amber-300 font-bold">₹{advanceTokenAmount.toLocaleString("en-IN")}</strong>{" "}
                       <span className="text-[11px] text-slate-400">
-                        ({total >= 100000 ? "₹10,000 for events ₹1L+" : "₹5,000 for events under ₹1L"})
+                        ({matchedAdvanceRule?.label || (total >= 100000 ? "₹10,000 for events ₹1L+" : "₹5,000 for events under ₹1L")})
                       </span>{" "}
                       (or full investment <strong className="text-white font-bold">₹{total.toLocaleString("en-IN")}</strong>) via UPI, then upload the payment screenshot to proceed.
                     </p>
@@ -1631,7 +1694,7 @@ export default function CustomPlanBuilder() {
                             <div>
                               <span className="text-slate-400 block">Advance Token to Lock Dates</span>
                               <span className="text-[10px] text-slate-500 font-mono">
-                                {total >= 100000 ? "Grand Event (≥ ₹1L) → ₹10,000" : "Standard Plan (< ₹1L) → ₹5,000"}
+                                {matchedAdvanceRule ? `${matchedAdvanceRule.label} → ₹${advanceTokenAmount.toLocaleString("en-IN")}` : (total >= 100000 ? "Grand Event (≥ ₹1L) → ₹10,000" : "Standard Plan (< ₹1L) → ₹5,000")}
                               </span>
                             </div>
                             <span className="font-mono text-emerald-400 font-bold text-sm">
@@ -1970,7 +2033,7 @@ export default function CustomPlanBuilder() {
                       <div>
                         <span>Token Advance to Reserve</span>
                         <span className="block text-[9px] text-slate-400 font-normal">
-                          {total >= 100000 ? "Grand Event (₹1L+)" : "Standard Plan (<₹1L)"}
+                          {matchedAdvanceRule?.label || (total >= 100000 ? "Grand Event (₹1L+)" : "Standard Plan (<₹1L)")}
                         </span>
                       </div>
                       <span className="text-sm font-mono">₹{advanceTokenAmount.toLocaleString("en-IN")}</span>

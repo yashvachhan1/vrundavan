@@ -11,6 +11,7 @@ const sidebarLinks = [
   { name: 'Post-Production', path: '/deliverables', icon: KanbanSquare },
   { name: 'Bundled Packages', path: '/packages', icon: Package },
   { name: 'Plan Builder Items', path: '/plan-builder', icon: Package },
+  { name: 'Advance Limits', path: '/advance-rules', icon: IndianRupee },
   { name: 'Discounts & Coupons', path: '/discounts', icon: ShoppingBag },
   { name: 'Gallery Portfolio', path: '/gallery', icon: ImageIcon },
   { name: 'Video Showcase', path: '/videos', icon: Video },

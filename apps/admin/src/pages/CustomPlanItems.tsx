@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { Plus, Trash2, Check, X, Loader2, Camera, Video, MonitorPlay, Box } from 'lucide-react';
+import { Plus, Trash2, Check, X, Loader2, Camera, Video, MonitorPlay, Box, IndianRupee, ArrowRight } from 'lucide-react';
 
 type PlanItemType = 'event' | 'service' | 'addon';
 type IconType = 'camera' | 'video' | 'drone';
@@ -115,13 +116,23 @@ export default function CustomPlanItems() {
           <Box className="w-8 h-8 text-indigo-500" />
           Plan Builder Items
         </h1>
-        <button 
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-400 transition-colors"
-        >
-          {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {isAdding ? 'Cancel' : 'Add Item'}
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/advance-rules"
+            className="flex items-center gap-2 bg-[#003366] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#002244] transition-colors text-sm"
+          >
+            <IndianRupee className="w-4 h-4" />
+            Advance Limits (50k / 100k)
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+          <button 
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-2 bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-400 transition-colors"
+          >
+            {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {isAdding ? 'Cancel' : 'Add Item'}
+          </button>
+        </div>
       </div>
 
       {error && (
