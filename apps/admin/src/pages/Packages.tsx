@@ -13,11 +13,7 @@ export default function Packages() {
   
   const [isAdding, setIsAdding] = useState(false);
 
-  useEffect(() => {
-    fetchPackages();
-  }, []);
-
-  const fetchPackages = async () => {
+  const fetchPackages = useCallback(async () => {
     setLoading(true);
     setError(null);
     let loaded: BundledPackage[] = [];
@@ -36,13 +32,17 @@ export default function Packages() {
 
     if (loaded.length === 0) {
       const local = localStorage.getItem('vrundavan_bundled_packages');
-      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PACKAGES as any);
+      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PACKAGES as unknown as BundledPackage[]);
       localStorage.setItem('vrundavan_bundled_packages', JSON.stringify(loaded));
     }
 
     setPackages(loaded);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
 
   const handleAddPackage = async (newPackage: NewBundledPackage) => {
     // Filter out empty features
@@ -73,8 +73,9 @@ export default function Packages() {
       if (updateError) throw updateError;
       
       setPackages(prev => prev.map(pkg => pkg.id === id ? { ...pkg, active: !currentStatus } : pkg));
-    } catch (err: any) {
-      alert(`Failed to update status: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to update status: ${msg}`);
     }
   }, []);
 
@@ -86,8 +87,9 @@ export default function Packages() {
       if (deleteError) throw deleteError;
       
       setPackages(prev => prev.filter(pkg => pkg.id !== id));
-    } catch (err: any) {
-      alert(`Failed to delete package: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete package: ${msg}`);
     }
   }, []);
 

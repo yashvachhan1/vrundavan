@@ -91,6 +91,7 @@ export const DEFAULT_MOCK_PACKAGES = [
     description: 'Capturing candid coupling stories in organic golden hour natural lighting.',
     features: ['1 Cinematographer', '1 Candid Photographer', 'Drone coverage', '1 min teaser reel', '3 to 4 min cinematic song'],
     is_popular: false,
+    badge_text: null,
     active: true
   },
   {
@@ -112,6 +113,7 @@ export const DEFAULT_MOCK_PACKAGES = [
     description: 'Perfect for Haldi, Mehendi, or intimate single-day ceremonies.',
     features: ['1 Traditional Photographer', '1 Traditional Videographer', '1 Candid Photographer', 'Full ceremony coverage video', 'All processed high-res photos'],
     is_popular: false,
+    badge_text: null,
     active: true
   }
 ];

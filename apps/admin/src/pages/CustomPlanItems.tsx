@@ -31,11 +31,7 @@ export default function CustomPlanItems() {
     active: true,
   });
 
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     setError(null);
     let loaded: PlanItem[] = [];
@@ -55,13 +51,17 @@ export default function CustomPlanItems() {
 
     if (loaded.length === 0) {
       const local = localStorage.getItem('vrundavan_custom_plan_items');
-      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PLAN_ITEMS as any);
+      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PLAN_ITEMS as unknown as PlanItem[]);
       localStorage.setItem('vrundavan_custom_plan_items', JSON.stringify(loaded));
     }
 
     setItems(loaded);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   const handleAddItem = async () => {
     if (!newItem.name || !newItem.price) return;
@@ -72,7 +72,7 @@ export default function CustomPlanItems() {
         name: newItem.name,
         price: newItem.price,
         description: newItem.description || '',
-        icon: newItem.icon,
+        icon: newItem.icon || 'camera',
         active: true
       }]).select();
 
@@ -83,8 +83,9 @@ export default function CustomPlanItems() {
         setIsAdding(false);
         setNewItem({ type: 'event', icon: 'camera', active: true });
       }
-    } catch (err: any) {
-      alert(`Failed to create item: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to create item: ${msg}`);
     } finally {
       setIsSaving(false);
     }
@@ -95,8 +96,9 @@ export default function CustomPlanItems() {
       const { error: updateError } = await supabase.from('custom_plan_items').update({ active: !currentStatus }).eq('id', id);
       if (updateError) throw updateError;
       setItems(prev => prev.map(item => item.id === id ? { ...item, active: !currentStatus } : item));
-    } catch (err: any) {
-      alert(`Failed to update status: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to update status: ${msg}`);
     }
   }, []);
 
@@ -106,8 +108,9 @@ export default function CustomPlanItems() {
       const { error: deleteError } = await supabase.from('custom_plan_items').delete().eq('id', id);
       if (deleteError) throw deleteError;
       setItems(prev => prev.filter(item => item.id !== id));
-    } catch (err: any) {
-      alert(`Failed to delete item: ${err.message}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Failed to delete item: ${msg}`);
     }
   }, []);
 

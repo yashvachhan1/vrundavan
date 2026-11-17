@@ -26,10 +26,26 @@ interface FinanceRecord {
   payouts: Payout[];
 }
 
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  phone?: string;
+  icon?: string;
+}
+
+interface OrderItem {
+  id: string;
+  customer: string;
+  total_amount?: number | string;
+  amountPaid?: number | string;
+  quote_id?: string;
+}
+
 export default function Finance() {
   const [finances, setFinances] = useState<FinanceRecord[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<FinanceRecord | null>(null);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [showAddPayoutModal, setShowAddPayoutModal] = useState(false);
@@ -37,15 +53,11 @@ export default function Finance() {
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setIsLoading(true);
-    let orders: any[] = [];
-    let members: any[] = [];
-    let payouts: any[] = [];
+    let orders: OrderItem[] = [];
+    let members: TeamMember[] = [];
+    let payouts: Payout[] = [];
 
     try {
       const [ordersRes, teamRes, payoutsRes] = await Promise.all([
@@ -53,56 +65,60 @@ export default function Finance() {
         supabase.from('team_members').select('*'),
         supabase.from('team_payouts').select('*')
       ]);
-      if (ordersRes.data && ordersRes.data.length > 0) orders = ordersRes.data;
-      if (teamRes.data && teamRes.data.length > 0) members = teamRes.data;
-      if (payoutsRes.data && payoutsRes.data.length > 0) payouts = payoutsRes.data;
+      if (ordersRes.data && ordersRes.data.length > 0) orders = ordersRes.data as OrderItem[];
+      if (teamRes.data && teamRes.data.length > 0) members = teamRes.data as TeamMember[];
+      if (payoutsRes.data && payoutsRes.data.length > 0) payouts = payoutsRes.data as Payout[];
     } catch {
       // Supabase connection error
     }
 
     if (orders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
-      orders = local ? JSON.parse(local) : DEFAULT_MOCK_ORDERS;
+      orders = local ? JSON.parse(local) : (DEFAULT_MOCK_ORDERS as unknown as OrderItem[]);
     }
     if (members.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
-      members = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+      members = local ? JSON.parse(local) : (DEFAULT_MOCK_TEAM as unknown as TeamMember[]);
     }
 
     setTeamMembers(members);
 
-      const formattedFinances = orders.map(order => {
-        const orderPayouts = payouts.filter(p => p.order_id === order.id).map(p => {
-           const member = members.find(m => m.id === p.member_id);
-           return {
-             ...p,
-             name: member?.name || 'Unknown',
-             role: member?.role || 'Unknown'
-           };
-        });
-
-        const total = Number(order.total_amount || 0);
-        const paid = Number(order.amountPaid || 0);
-        const due = Math.max(0, total - paid);
-
+    const formattedFinances = orders.map((order: OrderItem) => {
+      const orderPayouts = payouts.filter((p: Payout) => p.order_id === order.id).map((p: Payout) => {
+        const member = members.find((m: TeamMember) => m.id === p.member_id);
         return {
-          id: order.id,
-          quote_id: order.quote_id || order.id.split('-')[0].toUpperCase(),
-          client: order.customer,
-          total,
-          paid,
-          due,
-          status: due > 0 ? 'overdue' : 'paid',
-          payouts: orderPayouts
+          ...p,
+          name: member?.name || 'Unknown',
+          role: member?.role || 'Unknown'
         };
       });
 
-      setFinances(formattedFinances);
-      if (formattedFinances.length > 0) {
-        setSelectedOrder(formattedFinances[0]);
-      }
+      const total = Number(order.total_amount || 0);
+      const paid = Number(order.amountPaid || 0);
+      const due = Math.max(0, total - paid);
+
+      return {
+        id: order.id,
+        quote_id: order.quote_id || order.id.split('-')[0].toUpperCase(),
+        client: order.customer,
+        total,
+        paid,
+        due,
+        status: due > 0 ? 'overdue' : 'paid',
+        payouts: orderPayouts
+      };
+    });
+
+    setFinances(formattedFinances);
+    if (formattedFinances.length > 0) {
+      setSelectedOrder(formattedFinances[0]);
+    }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleAddPayout = async (e: React.FormEvent) => {
     e.preventDefault();
