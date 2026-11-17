@@ -47,7 +47,10 @@ const DEFAULT_STANDARD_RULES: AdvanceRule[] = [
   }
 ];
 
-const API_BASE = 'http://localhost:3000/api/advance-rules';
+const frontendUrl = import.meta.env.VITE_FRONTEND_URL || '';
+const API_BASE = frontendUrl 
+  ? `${frontendUrl}/api/advance-rules` 
+  : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3000/api/advance-rules' : '/api/advance-rules');
 
 export default function AdvanceRules() {
   const [rules, setRules] = useState<AdvanceRule[]>([]);
