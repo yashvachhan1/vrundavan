@@ -81,6 +81,7 @@ interface Order {
   payment_screenshot_url?: string;
   total_amount?: number;
   amountPaid?: string | number;
+  event_dates?: Record<string, string>;
   [key: string]: unknown;
 }
 
@@ -114,26 +115,74 @@ export default function Orders() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    let loadedOrders: any[] = [];
-    let loadedTeam: any[] = [];
+    let loadedOrders: Order[] = [];
+    let loadedTeam: TeamMember[] = [];
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://vrundavan-two.vercel.app'
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    // 1. Fetch live orders from Frontend API store
+    try {
+      const apiRes = await fetch(`${apiUrl}/api/orders`);
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (Array.isArray(apiData) && apiData.length > 0) {
+          loadedOrders = apiData;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("Could not fetch orders from API:", apiErr);
+    }
+
+    // 2. Fetch from Supabase if connected
     try {
       const [ordersRes, teamRes] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('team_members').select('*')
       ]);
-      if (ordersRes.data && ordersRes.data.length > 0) loadedOrders = ordersRes.data;
+      if (ordersRes.data && ordersRes.data.length > 0) {
+        const existingIds = new Set(loadedOrders.map(o => o.id));
+        const newFromDb = (ordersRes.data as Order[]).filter(o => !existingIds.has(o.id));
+        loadedOrders = [...loadedOrders, ...newFromDb];
+      }
       if (teamRes.data && teamRes.data.length > 0) loadedTeam = teamRes.data;
     } catch {
       // Supabase offline/paused
     }
 
+    // 3. Fallback to localStorage or mock data (never allow empty array wipeout)
     if (loadedOrders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
-      loadedOrders = local ? JSON.parse(local) : DEFAULT_MOCK_ORDERS;
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedOrders = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (loadedOrders.length === 0) {
+        loadedOrders = DEFAULT_MOCK_ORDERS as unknown as Order[];
+      }
     }
     if (loadedTeam.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
-      loadedTeam = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedTeam = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (loadedTeam.length === 0) {
+        loadedTeam = DEFAULT_MOCK_TEAM as unknown as TeamMember[];
+      }
     }
 
     setOrders(loadedOrders);
@@ -149,11 +198,30 @@ export default function Orders() {
   const confirmedOrders = useMemo(() => orders.filter(o => o.status === 'confirmed'), [orders]);
 
   const updateOrderInDb = async (orderId: string, updates: Record<string, unknown>) => {
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://vrundavan-two.vercel.app'
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    // 1. Sync live with Frontend API store
+    try {
+      await fetch(`${apiUrl}/api/orders`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderId, updates })
+      });
+    } catch (apiErr) {
+      console.warn("Could not sync order update to API:", apiErr);
+    }
+
+    // 2. Sync with Supabase if online
     try {
       await supabase.from('orders').update(updates).eq('id', orderId);
     } catch (err) {
       console.error("Error updating order in Supabase:", err);
     }
+
+    // 3. Update local state and localStorage
     setOrders(prev => {
       const next = prev.map(o => o.id === orderId ? { ...o, ...updates } : o);
       localStorage.setItem('vrundavan_orders', JSON.stringify(next));
@@ -380,6 +448,18 @@ export default function Orders() {
                     <span className="hidden sm:inline">Chat on WhatsApp: </span>{order.phone}
                   </button>
                 </div>
+
+                {/* Individual Ceremony Dates Badges if Available */}
+                {order.event_dates && typeof order.event_dates === 'object' && Object.keys(order.event_dates).length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {Object.entries(order.event_dates).map(([evId, evDate]) => (
+                      <span key={evId} className="text-xs bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5">
+                        <CalendarIcon className="w-3.5 h-3.5 text-amber-600" />
+                        <strong className="capitalize">{evId.replace(/_/g, ' ')}:</strong> {String(evDate)}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Payment & Actions */}

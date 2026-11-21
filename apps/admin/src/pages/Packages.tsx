@@ -32,7 +32,19 @@ export default function Packages() {
 
     if (loaded.length === 0) {
       const local = localStorage.getItem('vrundavan_bundled_packages');
-      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PACKAGES as unknown as BundledPackage[]);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loaded = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (loaded.length === 0) {
+        loaded = DEFAULT_MOCK_PACKAGES as unknown as BundledPackage[];
+      }
       localStorage.setItem('vrundavan_bundled_packages', JSON.stringify(loaded));
     }
 

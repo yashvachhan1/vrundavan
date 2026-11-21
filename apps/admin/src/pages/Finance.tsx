@@ -59,13 +59,35 @@ export default function Finance() {
     let members: TeamMember[] = [];
     let payouts: Payout[] = [];
 
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://vrundavan-two.vercel.app'
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    // 1. Fetch live orders from frontend API store
+    try {
+      const apiRes = await fetch(`${apiUrl}/api/orders`);
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (Array.isArray(apiData) && apiData.length > 0) {
+          orders = apiData as OrderItem[];
+        }
+      }
+    } catch {
+      // API unavailable or blocked
+    }
+
     try {
       const [ordersRes, teamRes, payoutsRes] = await Promise.all([
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('team_members').select('*'),
         supabase.from('team_payouts').select('*')
       ]);
-      if (ordersRes.data && ordersRes.data.length > 0) orders = ordersRes.data as OrderItem[];
+      if (ordersRes.data && ordersRes.data.length > 0) {
+        const existingIds = new Set(orders.map(o => o.id));
+        const newFromDb = (ordersRes.data as OrderItem[]).filter(o => !existingIds.has(o.id));
+        orders = [...orders, ...newFromDb];
+      }
       if (teamRes.data && teamRes.data.length > 0) members = teamRes.data as TeamMember[];
       if (payoutsRes.data && payoutsRes.data.length > 0) payouts = payoutsRes.data as Payout[];
     } catch {
@@ -74,11 +96,35 @@ export default function Finance() {
 
     if (orders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
-      orders = local ? JSON.parse(local) : (DEFAULT_MOCK_ORDERS as unknown as OrderItem[]);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            orders = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (orders.length === 0) {
+        orders = DEFAULT_MOCK_ORDERS as unknown as OrderItem[];
+      }
     }
     if (members.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
-      members = local ? JSON.parse(local) : (DEFAULT_MOCK_TEAM as unknown as TeamMember[]);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            members = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (members.length === 0) {
+        members = DEFAULT_MOCK_TEAM as unknown as TeamMember[];
+      }
     }
 
     setTeamMembers(members);

@@ -55,7 +55,19 @@ export default function Team() {
 
     if (loadedTeam.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
-      loadedTeam = local ? JSON.parse(local) : DEFAULT_MOCK_TEAM;
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedTeam = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (loadedTeam.length === 0) {
+        loadedTeam = DEFAULT_MOCK_TEAM;
+      }
       localStorage.setItem('vrundavan_team', JSON.stringify(loadedTeam));
     }
 

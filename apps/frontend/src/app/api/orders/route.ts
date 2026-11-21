@@ -107,6 +107,7 @@ export async function POST(request: Request) {
       total_amount: data.total_amount || 0,
       location: data.location || '',
       date: data.date,
+      event_dates: data.event_dates || null,
       status: data.status || 'pending_payment',
       amountPaid: data.amountPaid || '0',
       payment_screenshot_url: data.payment_screenshot_url || null,

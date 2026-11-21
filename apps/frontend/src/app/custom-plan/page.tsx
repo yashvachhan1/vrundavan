@@ -178,6 +178,34 @@ export default function CustomPlanBuilder() {
     Record<string, { photo: boolean; video: boolean }>
   >({});
 
+  // Individual date picker for each selected event / ceremony (e.g. pre_wedding, engagement, wedding, reception)
+  const [eventDates, setEventDates] = useState<Record<string, string>>({});
+
+  const handleSetEventDate = (eventId: string, date: string) => {
+    setEventDates((prev) => ({ ...prev, [eventId]: date }));
+    // Automatically keep primary date synced with wedding or the first selected date
+    if (eventId === "wedding" || !formData.date) {
+      setFormData((prev) => ({ ...prev, date }));
+    }
+  };
+
+  // Active selected ceremonies list that require scheduling
+  const selectedCeremonies = useMemo(() => {
+    const list: { id: string; name: string; type: string }[] = [];
+    if (includePreWedding) {
+      list.push({ id: "pre_wedding", name: "Pre-Wedding Shoot", type: "Pre-Wedding" });
+    }
+    Object.entries(eventSelections).forEach(([evId, cov]) => {
+      if (cov.photo || cov.video) {
+        const ev = EVENT_CATALOG.find((e) => e.id === evId);
+        if (ev) {
+          list.push({ id: evId, name: ev.name, type: "Ceremony" });
+        }
+      }
+    });
+    return list;
+  }, [includePreWedding, eventSelections]);
+
 
   // Per-event Drone Coverage (Day based: 10k per day)
   const [eventDrones, setEventDrones] = useState<Record<string, number>>({});
@@ -371,7 +399,7 @@ export default function CustomPlanBuilder() {
   const { subtotal, total, discountAmount, droneTotal, selectedItemsList } =
     useMemo(() => {
       let calcSubtotal = 0;
-      const items: { label: string; price: number; type: string }[] = [];
+      const items: { label: string; price: number; type: string; eventId?: string; date?: string }[] = [];
 
       // 1. Pre-wedding
       if (includePreWedding) {
@@ -380,7 +408,9 @@ export default function CustomPlanBuilder() {
         items.push({
           label: "Pre-Wedding Shoot (Couple Photos + 10D Story + 1 Reel)",
           price: pw.fullPrice,
-          type: "Pre-Wedding"
+          type: "Pre-Wedding",
+          eventId: "pre_wedding",
+          date: eventDates["pre_wedding"]
         });
 
         // Pre-wedding drone
@@ -391,7 +421,8 @@ export default function CustomPlanBuilder() {
           items.push({
             label: `Pre-Wedding: Drone Aerial Coverage (${dDays} Day${dDays > 1 ? "s" : ""})`,
             price: dPrice,
-            type: "Drone"
+            type: "Drone",
+            date: eventDates["pre_wedding"]
           });
         }
       }
@@ -400,27 +431,34 @@ export default function CustomPlanBuilder() {
       Object.entries(eventSelections).forEach(([evId, cov]) => {
         const ev = EVENT_CATALOG.find((e) => e.id === evId);
         if (!ev) return;
+        const evDate = eventDates[evId] || (evId === "cinematic_candid" ? eventDates["wedding"] : undefined);
 
         if (cov.photo && cov.video) {
           calcSubtotal += ev.fullPrice;
           items.push({
             label: `${ev.name} (Photo + Video)`,
             price: ev.fullPrice,
-            type: "Ceremony"
+            type: "Ceremony",
+            eventId: evId,
+            date: evDate
           });
         } else if (cov.photo) {
           calcSubtotal += ev.photoPrice;
           items.push({
             label: `${ev.name} (Photography Only)`,
             price: ev.photoPrice,
-            type: "Photography"
+            type: "Photography",
+            eventId: evId,
+            date: evDate
           });
         } else if (cov.video) {
           calcSubtotal += ev.videoPrice;
           items.push({
             label: `${ev.name} (Videography Only)`,
             price: ev.videoPrice,
-            type: "Videography"
+            type: "Videography",
+            eventId: evId,
+            date: evDate
           });
         }
 
@@ -432,7 +470,8 @@ export default function CustomPlanBuilder() {
           items.push({
             label: `${ev.name}: Drone Coverage (${dDays} Day${dDays > 1 ? "s" : ""})`,
             price: dPrice,
-            type: "Drone"
+            type: "Drone",
+            date: evDate
           });
         }
       });
@@ -466,6 +505,7 @@ export default function CustomPlanBuilder() {
       includePreWedding,
       eventSelections,
       eventDrones,
+      eventDates,
       appliedDiscount
     ]);
 
@@ -559,10 +599,15 @@ export default function CustomPlanBuilder() {
     }
   };
 
-  // Build the textual package blueprint
+  // Build the textual package blueprint with individual ceremony dates
   const packageString = useMemo(() => {
     const parts: string[] = [];
-    selectedItemsList.forEach((item) => parts.push(`${item.label}`));
+    selectedItemsList.forEach((item) => {
+      const dateText = item.date
+        ? ` [📅 ${new Date(item.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}]`
+        : "";
+      parts.push(`${item.label}${dateText}`);
+    });
     return `Custom Plan: ${parts.join(" | ")}`;
   }, [selectedItemsList]);
 
@@ -582,12 +627,18 @@ export default function CustomPlanBuilder() {
       alert("Please enter your name and contact phone number.");
       return;
     }
-    if (!formData.date) {
-      alert("Please select your shoot date.");
+
+    // Verify all selected ceremonies have individual dates selected
+    const missingDates = selectedCeremonies.filter((c) => !eventDates[c.id]);
+    if (missingDates.length > 0) {
+      alert(
+        `Please select dates for:\n• ${missingDates.map((m) => m.name).join("\n• ")}`
+      );
       return;
     }
 
     setIsSubmitting(true);
+    const primaryDate = eventDates["wedding"] || Object.values(eventDates)[0] || formData.date;
     const generatedQuote = `VRUN-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     try {
@@ -596,7 +647,8 @@ export default function CustomPlanBuilder() {
         customer: formData.name,
         email: formData.email,
         phone: formData.phone,
-        date: formData.date,
+        date: primaryDate,
+        event_dates: eventDates,
         location: formData.location || "Junagadh",
         package: packageString,
         total_amount: total,
@@ -934,6 +986,54 @@ export default function CustomPlanBuilder() {
                     </div>
                   </div>
 
+                  {resumedOrder.status === "confirmed" && (
+                    <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-3 animate-in fade-in">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                          <Check className="w-5 h-5 stroke-[3]" />
+                        </div>
+                        <div>
+                          <h4 className="text-base font-bold text-white">Booking Confirmed &amp; Dates Locked</h4>
+                          <p className="text-xs text-slate-300">
+                            Aapki booking officially confirm ho chuki hai. Studio photography &amp; videography team dates ke liye book ho chuki hai.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-emerald-500/20 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <span className="text-slate-400">
+                          Any queries? Contact studio on WhatsApp:
+                        </span>
+                        <a
+                          href={`https://wa.me/919876543210?text=${encodeURIComponent(
+                            `Hello Vrundavan Studio, I am inquiring about my confirmed booking ${resumedOrder.quote_id || resumedOrder.id}.`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Chat on WhatsApp
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {resumedOrder.status === "pending" && (
+                    <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-300 space-y-2 animate-in fade-in">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                          <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white">Payment Screenshot Under Verification</h4>
+                          <p className="text-xs text-slate-300">
+                            Aapka advance payment receipt studio management review kar raha hai. Verify hone ke baad status &apos;Confirmed&apos; ho jayega.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {resumedOrder.status === "pending_payment" && (
                     <button
                       onClick={() => {
@@ -942,7 +1042,7 @@ export default function CustomPlanBuilder() {
                         setActiveTab("builder");
                         setStep(3);
                       }}
-                      className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase tracking-wider text-xs transition-all shadow-lg"
+                      className="w-full py-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-bold uppercase tracking-wider text-xs transition-all shadow-lg cursor-pointer"
                     >
                       Pay ₹{(Number(resumedOrder.amountPaid) || advanceTokenAmount).toLocaleString("en-IN")} Advance Token Now
                     </button>
@@ -1040,7 +1140,7 @@ export default function CustomPlanBuilder() {
 
                     <div
                       onClick={() => setIncludePreWedding((prev) => !prev)}
-                      className={`relative rounded-3xl p-6 sm:p-7 border cursor-pointer transition-all duration-300 group overflow-hidden ${
+                      className={`relative rounded-3xl p-6 sm:p-7 border cursor-pointer transition-all duration-300 group focus-within:z-30 ${
                         includePreWedding
                           ? "bg-gradient-to-r from-[#003366]/40 via-[#0b1329] to-[#003366]/30 border-amber-400/60 shadow-[0_10px_30px_rgba(251,191,36,0.1)] ring-1 ring-amber-400/40"
                           : "bg-[#0b1329]/80 border-white/10 hover:border-white/20 hover:bg-[#0b1329]"
@@ -1180,6 +1280,37 @@ export default function CustomPlanBuilder() {
                           </div>
                         )}
                       </div>
+
+                      {/* In-Card Date Picker for Pre-Wedding */}
+                      {includePreWedding && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
+                              <Calendar className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-white block">
+                                Pre-Wedding Shoot Date *
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                Pick date for pre-wedding couple shoot
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-64 shrink-0">
+                            <CustomDatePicker
+                              value={eventDates["pre_wedding"] || ""}
+                              onChange={(d) => handleSetEventDate("pre_wedding", d)}
+                              bookedDates={bookedDates}
+                              placeholder="Select Pre-Wedding Date"
+                              dark={true}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1253,7 +1384,7 @@ export default function CustomPlanBuilder() {
                         return (
                           <div
                             key={event.id}
-                            className={`rounded-3xl border p-6 sm:p-7 transition-all duration-300 ${
+                            className={`rounded-3xl border p-6 sm:p-7 transition-all duration-300 relative focus-within:z-30 ${
                               isSelected
                                 ? "bg-[#0b1329] border-[#003366] shadow-[0_10px_30px_rgba(0,51,102,0.25)] ring-1 ring-[#003366]/50"
                                 : "bg-[#080e21] border-white/5 hover:border-white/10"
@@ -1473,6 +1604,37 @@ export default function CustomPlanBuilder() {
                                 </div>
                               )}
                             </div>
+
+                            {/* In-Card Date Picker for this Ceremony */}
+                            {isSelected && (
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
+                                    <Calendar className="w-4 h-4" />
+                                  </div>
+                                  <div>
+                                    <span className="text-xs font-bold text-white block">
+                                      {event.name} Date *
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      Select specific date for this ceremony
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="w-full sm:w-64 shrink-0">
+                                  <CustomDatePicker
+                                    value={eventDates[event.id] || (event.id === "cinematic_candid" ? (eventDates["wedding"] || "") : "")}
+                                    onChange={(d) => handleSetEventDate(event.id, d)}
+                                    bookedDates={bookedDates}
+                                    placeholder={`Select ${event.name} Date`}
+                                    dark={true}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1562,17 +1724,77 @@ export default function CustomPlanBuilder() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-2">
-                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-1 block">
-                      Shoot Date *
-                    </label>
-                    <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
-                      <CustomDatePicker
-                        value={formData.date}
-                        onChange={(date) => setFormData({ ...formData, date })}
-                        bookedDates={bookedDates}
-                      />
+                  <div className="space-y-4 pt-4 border-t border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <label className="text-xs font-bold text-white uppercase tracking-wider block">
+                          Ceremony Dates &amp; Event Schedule *
+                        </label>
+                        <p className="text-[11px] text-slate-400">
+                          Har ceremony ki alag date select karein taaki studio team availability verify ho sake.
+                        </p>
+                      </div>
+                      {selectedCeremonies.length > 0 && (
+                        <span className="text-[10px] font-mono uppercase bg-amber-400/10 text-amber-300 px-3 py-1 rounded-full border border-amber-400/20 font-bold self-start sm:self-auto">
+                          {selectedCeremonies.filter((c) => eventDates[c.id]).length} of {selectedCeremonies.length} Dates Set
+                        </span>
+                      )}
                     </div>
+
+                    {selectedCeremonies.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {selectedCeremonies.map((c) => {
+                          const isCinematic = c.id === "cinematic_candid";
+                          const currentDate = eventDates[c.id] || (isCinematic ? (eventDates["wedding"] || "") : "");
+                          const isDateSet = Boolean(currentDate);
+
+                          return (
+                            <div
+                              key={c.id}
+                              className={`p-4 rounded-2xl border transition-all space-y-2.5 ${
+                                isDateSet
+                                  ? "bg-white/[0.04] border-white/10"
+                                  : "bg-amber-500/[0.03] border-amber-400/30 ring-1 ring-amber-400/20"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-amber-400" />
+                                  <span className="text-sm font-bold text-white">{c.name}</span>
+                                </div>
+                                {isDateSet ? (
+                                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1 font-bold">
+                                    <Check className="w-3 h-3 stroke-[3]" /> Set
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold">
+                                    Date Required
+                                  </span>
+                                )}
+                              </div>
+
+                              <CustomDatePicker
+                                value={currentDate}
+                                onChange={(d) => handleSetEventDate(c.id, d)}
+                                bookedDates={bookedDates}
+                                placeholder={`Select ${c.name} Date`}
+                                dark={true}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="bg-white/5 border border-white/10 p-3 rounded-2xl">
+                        <CustomDatePicker
+                          value={formData.date}
+                          onChange={(date) => setFormData({ ...formData, date })}
+                          bookedDates={bookedDates}
+                          placeholder="Select Main Shoot Date"
+                          dark={true}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4 pt-6 border-t border-white/10">
@@ -1690,6 +1912,29 @@ export default function CustomPlanBuilder() {
                               ₹{total.toLocaleString("en-IN")}
                             </span>
                           </div>
+                          {selectedCeremonies.length > 0 && (
+                            <div className="py-1.5 border-b border-white/5 space-y-1">
+                              <span className="text-slate-400 block text-[10px] uppercase font-mono tracking-wider">
+                                Reserved Ceremony Dates
+                              </span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedCeremonies.map((c) => (
+                                  <span
+                                    key={c.id}
+                                    className="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300"
+                                  >
+                                    <strong className="text-amber-300">{c.name}:</strong>{" "}
+                                    {eventDates[c.id]
+                                      ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                                          day: "numeric",
+                                          month: "short"
+                                        })
+                                      : "Pending"}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           <div className="flex justify-between py-1 border-b border-white/5">
                             <div>
                               <span className="text-slate-400 block">Advance Token to Lock Dates</span>
@@ -1892,11 +2137,47 @@ export default function CustomPlanBuilder() {
                     <strong className="text-white">{formData.phone}</strong> shortly.
                   </p>
 
+                  {/* Reserved Ceremony Dates Schedule Table */}
+                  <div className="max-w-md mx-auto bg-white/5 p-4 rounded-2xl border border-white/10 text-left space-y-2">
+                    <span className="text-[11px] font-mono uppercase text-amber-400 font-bold block">
+                      📅 Reserved Ceremony Dates
+                    </span>
+                    <div className="space-y-1.5 text-xs">
+                      {selectedCeremonies.map((c) => (
+                        <div key={c.id} className="flex justify-between items-center text-slate-300 py-1 border-b border-white/5 last:border-0">
+                          <span className="font-medium text-white">{c.name}</span>
+                          <span className="font-mono text-amber-300 font-bold">
+                            {eventDates[c.id]
+                              ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric"
+                                })
+                              : "Date pending"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* WhatsApp Quick Link */}
                   <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
                     <a
                       href={`https://wa.me/919876543210?text=${encodeURIComponent(
-                        `Hello Vrundavan Studio Junagadh! I have created a custom booking quote ${quoteId} for my wedding on ${formData.date}. Total investment: ₹${total.toLocaleString(
+                        `Hello Vrundavan Studio Junagadh! I have created custom booking quote ${quoteId}. Functions & Dates: ${selectedCeremonies
+                          .map(
+                            (c) =>
+                              `${c.name}: ${
+                                eventDates[c.id]
+                                  ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric"
+                                    })
+                                  : "Pending"
+                              }`
+                          )
+                          .join(" | ")}. Total investment: ₹${total.toLocaleString(
                           "en-IN"
                         )}. Please confirm team assignment.`
                       )}`}
@@ -1914,6 +2195,7 @@ export default function CustomPlanBuilder() {
                         setIncludePreWedding(false);
                         setEventSelections({ wedding: { photo: true, video: true } });
                         setEventDrones({});
+                        setEventDates({});
                       }}
                       className="inline-flex items-center justify-center px-6 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs uppercase tracking-wider border border-white/10 transition-all"
                     >
@@ -1951,13 +2233,29 @@ export default function CustomPlanBuilder() {
                         key={idx}
                         className="flex items-start justify-between gap-3 p-3 rounded-xl bg-white/5 border border-white/5 text-xs"
                       >
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           <span className="text-white font-medium block leading-tight">
                             {item.label}
                           </span>
-                          <span className="text-[10px] font-mono text-amber-400/80">
-                            {item.type}
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-mono text-amber-400/80">
+                              {item.type}
+                            </span>
+                            {item.date ? (
+                              <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">
+                                <Calendar className="w-2.5 h-2.5 text-amber-400" />
+                                {new Date(item.date).toLocaleDateString("en-IN", {
+                                  day: "numeric",
+                                  month: "short"
+                                })}
+                              </span>
+                            ) : item.eventId ? (
+                              <span className="text-[10px] font-mono text-amber-400/70 flex items-center gap-1">
+                                <Calendar className="w-2.5 h-2.5 text-amber-400/50" />
+                                Date pending
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                         <span className="font-serif font-bold text-slate-200 shrink-0">
                           ₹{item.price.toLocaleString("en-IN")}

@@ -51,7 +51,19 @@ export default function CustomPlanItems() {
 
     if (loaded.length === 0) {
       const local = localStorage.getItem('vrundavan_custom_plan_items');
-      loaded = local ? JSON.parse(local) : (DEFAULT_MOCK_PLAN_ITEMS as unknown as PlanItem[]);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loaded = parsed;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      if (loaded.length === 0) {
+        loaded = DEFAULT_MOCK_PLAN_ITEMS as unknown as PlanItem[];
+      }
       localStorage.setItem('vrundavan_custom_plan_items', JSON.stringify(loaded));
     }
 

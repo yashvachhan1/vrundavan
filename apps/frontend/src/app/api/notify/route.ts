@@ -48,12 +48,15 @@ const sendMetaWhatsApp = async (toPhone: string, templateName: string, customVar
   }
 };
 
+const GMAIL_DEFAULT_USER = 'kamaninimesh19@gmail.com';
+const GMAIL_DEFAULT_PASS = 'vvbasyqfxsqjfybp';
+
 // Initialize Nodemailer transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.GMAIL_USER || '',
-    pass: process.env.GMAIL_APP_PASSWORD || ''
+    user: process.env.GMAIL_USER || GMAIL_DEFAULT_USER,
+    pass: (process.env.GMAIL_APP_PASSWORD || GMAIL_DEFAULT_PASS).replace(/\s+/g, '')
   }
 });
 
@@ -70,7 +73,9 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
   try {
     const { type, order, customMessage, teamPhones, payout } = await req.json();
-    const adminEmail = process.env.ADMIN_EMAIL || process.env.GMAIL_USER;
+    const senderEmail = process.env.GMAIL_USER || GMAIL_DEFAULT_USER;
+    const fromSender = `"Vrundavan Studio" <${senderEmail}>`;
+    const adminEmail = process.env.ADMIN_EMAIL || senderEmail;
     const adminPhone = process.env.ADMIN_PHONE; // Include country code e.g., 919876543210
 
     console.log(`[API/NOTIFY] Received request: ${type} for order ${order?.id}`);
@@ -84,8 +89,8 @@ export async function POST(req: Request) {
       const subject = `🚨 New Quote Request: ${order.customer}`;
       const text = `You received a new quote request from ${order.customer}!\n\nEmail: ${order.email}\nPhone: ${order.phone}\nPackage: ${order.package}\nDate: ${order.date}\nTotal Estimate: ₹${order.total_amount}\n\nPlease check the Admin Portal.`;
 
-      if (adminEmail && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: adminEmail, subject, text });
+      if (adminEmail && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: adminEmail, subject, text });
         responses.adminAlert = true;
       }
       
@@ -122,8 +127,8 @@ export async function POST(req: Request) {
         </div>
       `;
 
-      if (order.email && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: order.email, subject, html });
+      if (order.email && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
         responses.email = true;
       }
       
@@ -184,8 +189,8 @@ export async function POST(req: Request) {
         </div>
       `;
 
-      if (order.email && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: order.email, subject, html });
+      if (order.email && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
         responses.email = true;
       }
     }
@@ -214,8 +219,8 @@ export async function POST(req: Request) {
         </div>
       `;
 
-      if (order.email && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: order.email, subject, html });
+      if (order.email && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
         responses.email = true;
       }
     }
@@ -298,8 +303,8 @@ export async function POST(req: Request) {
         </div>
       `;
 
-      if (order.email && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: order.email, subject, html });
+      if (order.email && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
         responses.email = true;
       }
       
@@ -351,8 +356,8 @@ export async function POST(req: Request) {
         </div>
       `;
 
-      if (adminEmail && process.env.GMAIL_USER) {
-        await transporter.sendMail({ from: process.env.GMAIL_USER, to: adminEmail, subject, html });
+      if (adminEmail && senderEmail) {
+        await transporter.sendMail({ from: fromSender, to: adminEmail, subject, html });
         responses.email = true;
       }
     }

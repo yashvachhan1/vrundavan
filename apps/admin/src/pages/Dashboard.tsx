@@ -16,28 +16,58 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setIsLoading(true);
     let loadedOrders: any[] = [];
+    
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://vrundavan-two.vercel.app'
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    // 1. Fetch live orders from frontend API store
+    try {
+      const apiRes = await fetch(`${apiUrl}/api/orders`);
+      if (apiRes.ok) {
+        const apiData = await apiRes.json();
+        if (Array.isArray(apiData) && apiData.length > 0) {
+          loadedOrders = apiData;
+          setIsUsingDemo(false);
+        }
+      }
+    } catch {
+      // API unavailable or blocked
+    }
+
+    // 2. Fetch from Supabase
     try {
       const { data, error } = await supabase.from('orders').select('*');
       if (data && data.length > 0 && !error) {
-        loadedOrders = data;
+        const existingIds = new Set(loadedOrders.map(o => o.id));
+        const newFromDb = data.filter(o => !existingIds.has(o.id));
+        loadedOrders = [...loadedOrders, ...newFromDb];
         setIsUsingDemo(false);
       }
     } catch {
       // Supabase connection error
     }
 
+    // 3. Fallback to localStorage (only if it has valid non-empty items)
     if (loadedOrders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
       if (local) {
         try {
-          loadedOrders = JSON.parse(local);
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedOrders = parsed;
+          }
         } catch {
-          loadedOrders = DEFAULT_MOCK_ORDERS;
+          // ignore
         }
-      } else {
-        loadedOrders = DEFAULT_MOCK_ORDERS;
-        localStorage.setItem('vrundavan_orders', JSON.stringify(DEFAULT_MOCK_ORDERS));
       }
+    }
+
+    // 4. Default Mock Orders fallback if still empty
+    if (loadedOrders.length === 0) {
+      loadedOrders = DEFAULT_MOCK_ORDERS;
+      localStorage.setItem('vrundavan_orders', JSON.stringify(DEFAULT_MOCK_ORDERS));
       setIsUsingDemo(true);
     }
 
@@ -56,7 +86,7 @@ export default function Dashboard() {
 
     orders.forEach(order => {
       // Line chart data
-      const date = new Date(order.created_at);
+      const date = new Date(order.created_at || Date.now());
       const month = date.toLocaleString('default', { month: 'short' });
       monthlyRevenue[month] = (monthlyRevenue[month] || 0) + Number(order.total_amount || 0);
 
@@ -85,7 +115,7 @@ export default function Dashboard() {
   const stats = [
     { title: 'Total Inquiries', value: totalInquiries, trend: '+12%', icon: Users },
     { title: 'Confirmed Bookings', value: confirmedBookings, trend: '+5%', icon: Calendar },
-    { title: 'Custom Packages Built', value: packageData.reduce((acc, curr) => acc + curr.value, 0), trend: '+18%', icon: Package },
+    { title: 'Custom Packages Built', value: packageData.reduce((acc, curr) => acc + curr.value, 0) || totalInquiries, trend: '+18%', icon: Package },
     { title: 'Total Est. Revenue', value: `₹${(totalRevenue / 100000).toFixed(2)}L`, trend: '+22%', icon: TrendingUp },
   ];
 
@@ -98,7 +128,7 @@ export default function Dashboard() {
         </div>
         <button 
           onClick={fetchDashboardData}
-          className="bg-[#003366] hover:bg-[#002244] text-white px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-[#003366]/20 flex items-center gap-2"
+          className="bg-[#003366] hover:bg-[#002244] text-white px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-[#003366]/20 flex items-center gap-2 cursor-pointer"
         >
           <RefreshCcw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} /> Refresh Data
         </button>
@@ -138,76 +168,94 @@ export default function Dashboard() {
                 <Icon className="w-24 h-24 text-[#003366]" strokeWidth={1} />
               </div>
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#003366]/10 flex items-center justify-center text-[#003366]">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    {stat.trend}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-500">{stat.title}</span>
+                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{stat.trend}</span>
                 </div>
-                <h3 className="text-gray-500 font-medium text-sm">{stat.title}</h3>
-                <p className="text-3xl font-black text-gray-900 mt-1">{stat.value}</p>
+                <div className="mt-4 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900 tracking-tight">{stat.value}</span>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[400px]">
+      {/* Visual Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Revenue Line Chart */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Revenue Overview</h2>
-          <div className="flex-1 min-h-[300px]">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Revenue Overview</h3>
+            <p className="text-sm text-gray-400 mt-1">Monthly estimated earnings distribution</p>
+          </div>
+          <div className="h-[280px] w-full mt-4">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} tickFormatter={(value) => `₹${value / 1000}k`} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                    formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Revenue']}
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis 
+                    stroke="#94a3b8" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    tickFormatter={(val) => `₹${val / 1000}k`} 
                   />
-                  <Line type="monotone" dataKey="revenue" stroke="#003366" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#003366' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#b7791f' }} />
+                  <Tooltip 
+                    formatter={(value: any) => [`₹${Number(value).toLocaleString('en-IN')}`, 'Revenue']}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#003366" 
+                    strokeWidth={3} 
+                    dot={{ fill: '#003366', strokeWidth: 2 }} 
+                    activeDot={{ r: 6 }} 
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-400 font-medium">Not enough data to display chart.</div>
+              <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                Not enough data to display chart.
+              </div>
             )}
           </div>
         </div>
 
-        {/* Popular Packages Pie Chart */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col">
-          <h2 className="text-lg font-bold text-gray-900 mb-6">Popular Packages</h2>
-          <div className="flex-1 min-h-[300px] flex items-center justify-center">
-             {packageData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={packageData}
-                      cx="50%"
-                      cy="45%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {packageData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                    />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-             ) : (
-                <div className="text-gray-400 font-medium">Not enough data to display chart.</div>
-             )}
+        {/* Popular Packages Doughnut */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Popular Packages</h3>
+            <p className="text-sm text-gray-400 mt-1">Breakdown of custom plans chosen</p>
+          </div>
+          <div className="h-[280px] w-full flex items-center justify-center">
+            {packageData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={packageData}
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {packageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: any) => [value, 'Bookings']}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+                Not enough data to display chart.
+              </div>
+            )}
           </div>
         </div>
       </div>

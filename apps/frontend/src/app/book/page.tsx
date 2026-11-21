@@ -97,15 +97,45 @@ export default function BookingPage() {
     setIsSubmitting(true);
     
     try {
+      const q = searchQuery.trim();
+      const isEmail = q.includes('@');
+      const isQuoteId = q.toUpperCase().startsWith('VRUN-') || q.toUpperCase().startsWith('ORD-') || (q.length >= 6 && /^[A-Z0-9-]+$/i.test(q));
+
+      // 1. Try lookup via /api/orders first (in-memory + Supabase live sync)
+      try {
+        const apiRes = await fetch(`/api/orders?q=${encodeURIComponent(q)}`);
+        if (apiRes.ok) {
+          const apiData = await apiRes.json();
+          if (apiData && apiData.order) {
+            const order = apiData.order;
+            setOrderId(order.id);
+            setResumedOrder(order);
+
+            if (order.status === 'confirmed' || order.status === 'pending' || order.status === 'verifying') {
+              setStep(6); // Step 6: Order Dashboard (Confirmed / Verifying)
+              setIsSubmitting(false);
+              return;
+            }
+
+            if (order.status === 'pending_payment') {
+              setStep(4); // Advance payment
+              setIsSubmitting(false);
+              if (isEmail) setFormData(prev => ({...prev, email: q}));
+              else setFormData(prev => ({...prev, phone: q}));
+              return;
+            }
+          }
+        }
+      } catch (apiErr) {
+        console.warn("API lookup error:", apiErr);
+      }
+
+      // 2. Direct Supabase query fallback
       if (supabase) {
         let query = supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(1);
         
-        const q = searchQuery.trim();
-        const isEmail = q.includes('@');
-        const isQuoteId = q.length === 8 && /^[A-Z0-9]+$/i.test(q);
-        
         if (isQuoteId) {
-          query = query.eq('quote_id', q.toUpperCase());
+          query = query.or(`quote_id.ilike.%${q}%,id.ilike.%${q}%`);
         } else if (isEmail) {
           query = query.eq('email', q);
         } else {
@@ -118,7 +148,7 @@ export default function BookingPage() {
           setOrderId(order.id);
           setResumedOrder(order);
           
-          if (isQuoteId) {
+          if (order.status === 'confirmed' || order.status === 'pending' || order.status === 'verifying') {
             setStep(6);
             setIsSubmitting(false);
             return;
@@ -130,28 +160,25 @@ export default function BookingPage() {
             if (isEmail) setFormData(prev => ({...prev, email: q}));
             else setFormData(prev => ({...prev, phone: q}));
             return;
-          } else if (order.status === 'verifying' || order.status === 'confirmed') {
-            setStep(6);
-            setIsSubmitting(false);
-            return;
           }
         }
-        
-        if (isQuoteId) {
-          setAuthError('Invalid Quote ID or Order not found.');
-          setIsSubmitting(false);
-          return;
-        }
+      }
+
+      // If looking up by Quote ID and not found, show error
+      if (isQuoteId) {
+        setAuthError('No order found matching this Quote ID. Please check and try again.');
+        setIsSubmitting(false);
+        return;
       }
       
-      const q = searchQuery.trim();
-      if (q.includes('@')) setFormData(prev => ({...prev, email: q}));
+      // If entered a new phone/email to begin a fresh booking
+      if (isEmail) setFormData(prev => ({...prev, email: q}));
       else setFormData(prev => ({...prev, phone: q}));
       
-      setStep(2); // Proceed to date selection
+      setStep(2); // Proceed to date selection for new booking
     } catch (err) {
       console.error(err);
-      setStep(2);
+      setAuthError('Error looking up order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

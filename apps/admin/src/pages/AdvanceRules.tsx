@@ -48,9 +48,12 @@ const DEFAULT_STANDARD_RULES: AdvanceRule[] = [
 ];
 
 const frontendUrl = import.meta.env.VITE_FRONTEND_URL || '';
+const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? 'https://vrundavan-two.vercel.app'
+  : 'http://localhost:3000';
 const API_BASE = frontendUrl 
   ? `${frontendUrl}/api/advance-rules` 
-  : (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3000/api/advance-rules' : '/api/advance-rules');
+  : `${defaultFrontend}/api/advance-rules`;
 
 export default function AdvanceRules() {
   const [rules, setRules] = useState<AdvanceRule[]>([]);
