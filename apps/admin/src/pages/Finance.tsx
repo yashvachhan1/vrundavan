@@ -59,8 +59,9 @@ export default function Finance() {
     let members: TeamMember[] = [];
     let payouts: Payout[] = [];
 
+    const LIVE_FRONTEND_URL = 'https://vrundavan-frontend.vercel.app';
     const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-      ? 'https://vrundavan-two.vercel.app'
+      ? LIVE_FRONTEND_URL
       : 'http://localhost:3000';
     const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
 
@@ -75,6 +76,22 @@ export default function Finance() {
       }
     } catch {
       // API unavailable or blocked
+    }
+
+    if (apiUrl !== LIVE_FRONTEND_URL) {
+      try {
+        const liveRes = await fetch(`${LIVE_FRONTEND_URL}/api/orders`);
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          if (Array.isArray(liveData) && liveData.length > 0) {
+            const existingKeys = new Set(orders.map(o => o.quote_id || o.id));
+            const newLive = (liveData as OrderItem[]).filter(o => !existingKeys.has(o.quote_id || o.id));
+            orders = [...orders, ...newLive];
+          }
+        }
+      } catch {
+        // live fetch optional
+      }
     }
 
     try {

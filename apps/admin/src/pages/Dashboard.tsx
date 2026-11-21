@@ -17,8 +17,9 @@ export default function Dashboard() {
     setIsLoading(true);
     let loadedOrders: any[] = [];
     
+    const LIVE_FRONTEND_URL = 'https://vrundavan-frontend.vercel.app';
     const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-      ? 'https://vrundavan-two.vercel.app'
+      ? LIVE_FRONTEND_URL
       : 'http://localhost:3000';
     const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
 
@@ -34,6 +35,24 @@ export default function Dashboard() {
       }
     } catch {
       // API unavailable or blocked
+    }
+
+    // 1b. If on localhost, also check live production frontend
+    if (apiUrl !== LIVE_FRONTEND_URL) {
+      try {
+        const liveRes = await fetch(`${LIVE_FRONTEND_URL}/api/orders`);
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          if (Array.isArray(liveData) && liveData.length > 0) {
+            const existingKeys = new Set(loadedOrders.map(o => o.quote_id || o.id));
+            const newLive = liveData.filter((o: any) => !existingKeys.has(o.quote_id || o.id));
+            loadedOrders = [...loadedOrders, ...newLive];
+            setIsUsingDemo(false);
+          }
+        }
+      } catch {
+        // live fetch optional
+      }
     }
 
     // 2. Fetch from Supabase

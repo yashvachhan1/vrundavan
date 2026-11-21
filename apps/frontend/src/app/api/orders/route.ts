@@ -133,7 +133,9 @@ export async function POST(request: Request) {
           total_amount: newOrder.total_amount,
           quote_id: newOrder.quote_id,
           location: newOrder.location,
-          payment_screenshot_url: newOrder.payment_screenshot_url
+          payment_screenshot_url: newOrder.payment_screenshot_url,
+          event_dates: newOrder.event_dates,
+          assignedTeam: []
         }]).select().single();
 
         if (!dbError && dbOrder) {
@@ -174,7 +176,7 @@ export async function PUT(request: Request) {
     try {
       const supabase = await createClient();
       if (supabase) {
-        await supabase.from('orders').update(updates).eq('id', id);
+        await supabase.from('orders').update(updates).or(`id.eq.${id},quote_id.eq.${id}`);
       }
     } catch (dbErr) {
       console.warn("Supabase update fallback:", dbErr);
@@ -185,4 +187,46 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: error?.message || 'Failed to update order' }, { status: 400, headers: corsHeaders });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await request.json();
+        id = body?.id || body?.quote_id;
+      } catch {
+        // body might be empty
+      }
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Order ID or Quote ID is required' }, { status: 400, headers: corsHeaders });
+    }
+
+    // 1. Remove from in-memory global store
+    if ((global as any).ordersStore) {
+      (global as any).ordersStore = (global as any).ordersStore.filter(
+        (o: any) => o.id !== id && o.quote_id !== id
+      );
+    }
+
+    // 2. Remove from Supabase
+    try {
+      const supabase = await createClient();
+      if (supabase) {
+        await supabase.from('orders').delete().or(`id.eq.${id},quote_id.eq.${id}`);
+      }
+    } catch (dbErr) {
+      console.warn("Supabase delete fallback:", dbErr);
+    }
+
+    return NextResponse.json({ success: true, deletedId: id }, { headers: corsHeaders });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Failed to delete order' }, { status: 400, headers: corsHeaders });
+  }
+}
+
 

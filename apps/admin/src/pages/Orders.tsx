@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus } from 'lucide-react';
+import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_MOCK_ORDERS, DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
@@ -104,6 +104,7 @@ export default function Orders() {
   const [payoutAmounts, setPayoutAmounts] = useState<Record<string, string>>({});
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [processingOrderId, setProcessingOrderId] = useState<string | null>(null);
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   const toggleOrderExpansion = (orderId: string) => {
     setExpandedOrders(prev => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -113,16 +114,18 @@ export default function Orders() {
     fetchData();
   }, []);
 
+  const LIVE_FRONTEND_URL = 'https://vrundavan-frontend.vercel.app';
+
   const fetchData = async () => {
     setIsLoading(true);
     let loadedOrders: Order[] = [];
     let loadedTeam: TeamMember[] = [];
     const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-      ? 'https://vrundavan-two.vercel.app'
+      ? LIVE_FRONTEND_URL
       : 'http://localhost:3000';
     const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
 
-    // 1. Fetch live orders from Frontend API store
+    // 1. Fetch live orders from primary API store
     try {
       const apiRes = await fetch(`${apiUrl}/api/orders`);
       if (apiRes.ok) {
@@ -135,6 +138,23 @@ export default function Orders() {
       console.warn("Could not fetch orders from API:", apiErr);
     }
 
+    // 1b. If on localhost or custom domain, also fetch live production orders from Vercel so they immediately show!
+    if (apiUrl !== LIVE_FRONTEND_URL) {
+      try {
+        const liveRes = await fetch(`${LIVE_FRONTEND_URL}/api/orders`);
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          if (Array.isArray(liveData) && liveData.length > 0) {
+            const existingKeys = new Set(loadedOrders.map(o => o.quote_id || o.id));
+            const newFromLive = (liveData as Order[]).filter(o => !existingKeys.has(o.quote_id || o.id));
+            loadedOrders = [...loadedOrders, ...newFromLive];
+          }
+        }
+      } catch (liveErr) {
+        console.warn("Could not fetch live Vercel orders:", liveErr);
+      }
+    }
+
     // 2. Fetch from Supabase if connected
     try {
       const [ordersRes, teamRes] = await Promise.all([
@@ -142,8 +162,8 @@ export default function Orders() {
         supabase.from('team_members').select('*')
       ]);
       if (ordersRes.data && ordersRes.data.length > 0) {
-        const existingIds = new Set(loadedOrders.map(o => o.id));
-        const newFromDb = (ordersRes.data as Order[]).filter(o => !existingIds.has(o.id));
+        const existingKeys = new Set(loadedOrders.map(o => o.quote_id || o.id));
+        const newFromDb = (ordersRes.data as Order[]).filter(o => !existingKeys.has(o.quote_id || o.id));
         loadedOrders = [...loadedOrders, ...newFromDb];
       }
       if (teamRes.data && teamRes.data.length > 0) loadedTeam = teamRes.data;
@@ -199,7 +219,7 @@ export default function Orders() {
 
   const updateOrderInDb = async (orderId: string, updates: Record<string, unknown>) => {
     const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-      ? 'https://vrundavan-two.vercel.app'
+      ? LIVE_FRONTEND_URL
       : 'http://localhost:3000';
     const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
 
@@ -212,6 +232,18 @@ export default function Orders() {
       });
     } catch (apiErr) {
       console.warn("Could not sync order update to API:", apiErr);
+    }
+
+    if (apiUrl !== LIVE_FRONTEND_URL) {
+      try {
+        await fetch(`${LIVE_FRONTEND_URL}/api/orders`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: orderId, updates })
+        });
+      } catch {
+        // live sync optional
+      }
     }
 
     // 2. Sync with Supabase if online
@@ -229,8 +261,69 @@ export default function Orders() {
     });
   };
 
+  const handleDeleteOrder = async (order: Order) => {
+    const quoteOrId = order.quote_id || order.id;
+    const confirmDelete = window.confirm(
+      `Kya aap sach me is order ko permanently remove/delete karna chahte hain?\n\nCustomer: ${order.customer}\nQuote ID: ${quoteOrId}\nPackage: ${order.package}`
+    );
+    if (!confirmDelete) return;
+
+    setDeletingOrderId(order.id);
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? LIVE_FRONTEND_URL
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    // 1. Call primary API DELETE
+    try {
+      await fetch(`${apiUrl}/api/orders?id=${encodeURIComponent(order.id)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: order.id, quote_id: order.quote_id })
+      });
+    } catch (err) {
+      console.warn("Primary API delete failed:", err);
+    }
+
+    // 1b. Also call live Vercel API DELETE if on localhost
+    if (apiUrl !== LIVE_FRONTEND_URL) {
+      try {
+        await fetch(`${LIVE_FRONTEND_URL}/api/orders?id=${encodeURIComponent(order.id)}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: order.id, quote_id: order.quote_id })
+        });
+      } catch {
+        // live delete optional
+      }
+    }
+
+    // 2. Delete from Supabase
+    try {
+      const filterId = order.id;
+      const filterQuote = order.quote_id || order.id;
+      await supabase.from('orders').delete().or(`id.eq.${filterId},quote_id.eq.${filterQuote}`);
+    } catch (err) {
+      console.warn("Supabase delete failed:", err);
+    }
+
+    // 3. Update local state and localStorage
+    setOrders(prev => {
+      const next = prev.filter(o => o.id !== order.id && (!order.quote_id || o.quote_id !== order.quote_id));
+      localStorage.setItem('vrundavan_orders', JSON.stringify(next));
+      return next;
+    });
+
+    setDeletingOrderId(null);
+  };
+
   const handleSendEmail = (order: Order, type: string, customMessage?: string) => {
-    fetch('http://localhost:3000/api/notify', {
+    const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? LIVE_FRONTEND_URL
+      : 'http://localhost:3000';
+    const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
+    fetch(`${apiUrl}/api/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, order, customMessage })
@@ -413,7 +506,18 @@ export default function Orders() {
                     <p className="text-[#003366] font-bold text-xs uppercase tracking-wider mt-1">{order.package}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase tracking-widest">{order.id}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-100 uppercase tracking-widest">{order.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteOrder(order)}
+                        disabled={deletingOrderId === order.id}
+                        className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-40"
+                        title="Delete / Remove this order"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                     <div className="flex gap-2 items-center flex-wrap justify-end">
                       {order.total_amount && (
                         <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-100">
@@ -547,6 +651,17 @@ export default function Orders() {
                   >
                     {expandedOrders[order.id] ? 'Close Manager' : 'Manage Team & Email'}
                     <ChevronDown className={`w-4 h-4 transition-transform ${expandedOrders[order.id] ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => handleDeleteOrder(order)}
+                    disabled={deletingOrderId === order.id}
+                    className="w-full flex items-center justify-center gap-2 bg-red-50/80 hover:bg-red-100 text-red-600 border border-red-200/80 px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm disabled:opacity-50 h-[38px]"
+                    title="Permanently remove confirmed order"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {deletingOrderId === order.id ? 'Removing...' : 'Remove Confirmed Order'}
                   </button>
                 </div>
               )}
