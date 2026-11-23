@@ -604,7 +604,10 @@ export default function Orders() {
                     {Object.entries(order.event_dates).map(([evId, evDate]) => (
                       <span key={evId} className="text-xs bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5">
                         <CalendarIcon className="w-3.5 h-3.5 text-amber-600" />
-                        <strong className="capitalize">{evId.replace(/_/g, ' ')}:</strong> {String(evDate)}
+                        <strong className="capitalize">
+                          {evId === 'wedding_day2' ? 'Wedding Day 2 (Lagna)' : evId.replace(/_/g, ' ')}:
+                        </strong>{' '}
+                        {formatLocalDate(String(evDate))}
                       </span>
                     ))}
                   </div>

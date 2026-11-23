@@ -432,7 +432,10 @@ export default function CustomPlanBuilder() {
       Object.entries(eventSelections).forEach(([evId, cov]) => {
         const ev = EVENT_CATALOG.find((e) => e.id === evId);
         if (!ev) return;
-        const evDate = eventDates[evId] || (evId === "cinematic_candid" ? eventDates["wedding"] : undefined);
+        let evDate = eventDates[evId] || (evId === "cinematic_candid" ? eventDates["wedding"] : undefined);
+        if (evId === "wedding" && eventDates["wedding"] && eventDates["wedding_day2"]) {
+          evDate = `${eventDates["wedding"]} & ${eventDates["wedding_day2"]}`;
+        }
 
         if (cov.photo && cov.video) {
           calcSubtotal += ev.fullPrice;
@@ -604,13 +607,22 @@ export default function CustomPlanBuilder() {
   const packageString = useMemo(() => {
     const parts: string[] = [];
     selectedItemsList.forEach((item) => {
-      const dateText = item.date
-        ? ` [📅 ${formatLocalDate(item.date, { day: "numeric", month: "short", year: "numeric" })}]`
-        : "";
+      let dateText = "";
+      if (item.eventId === "wedding" && eventDates["wedding"]) {
+        const d1 = formatLocalDate(eventDates["wedding"], { day: "numeric", month: "short", year: "numeric" });
+        if (eventDates["wedding_day2"]) {
+          const d2 = formatLocalDate(eventDates["wedding_day2"], { day: "numeric", month: "short", year: "numeric" });
+          dateText = ` [📅 Day 1 (Mandap): ${d1} | Day 2 (Lagna): ${d2}]`;
+        } else {
+          dateText = ` [📅 ${d1}]`;
+        }
+      } else if (item.date) {
+        dateText = ` [📅 ${formatLocalDate(item.date, { day: "numeric", month: "short", year: "numeric" })}]`;
+      }
       parts.push(`${item.label}${dateText}`);
     });
     return `Custom Plan: ${parts.join(" | ")}`;
-  }, [selectedItemsList]);
+  }, [selectedItemsList, eventDates]);
 
   // Step 1 -> Step 2 validation
   const handleProceedToDetails = () => {
@@ -1608,33 +1620,106 @@ export default function CustomPlanBuilder() {
 
                             {/* In-Card Date Picker for this Ceremony */}
                             {isSelected && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
-                                    <Calendar className="w-4 h-4" />
+                              event.id === "wedding" ? (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-3 pt-3 border-t border-white/5 space-y-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-8 h-8 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
+                                        <Calendar className="w-4 h-4" />
+                                      </div>
+                                      <div>
+                                        <span className="text-xs font-bold text-white block">
+                                          Wedding (Lagna) Ceremony Dates
+                                        </span>
+                                        <span className="text-[10px] text-slate-400">
+                                          Mandap / Haldi (Day 1) &amp; Main Lagna (Day 2)
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <span className="text-[10px] font-mono uppercase bg-amber-400/10 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/20 font-bold">
+                                      2 Days Support
+                                    </span>
                                   </div>
-                                  <div>
-                                    <span className="text-xs font-bold text-white block">
-                                      {event.name} Date *
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                      Select specific date for this ceremony
-                                    </span>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    {/* Day 1 Date: Mandap / Haldi */}
+                                    <div className="space-y-1.5">
+                                      <label className="text-[11px] font-bold text-amber-300 flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                                        Day 1: Mandap / Haldi Date *
+                                      </label>
+                                      <CustomDatePicker
+                                        value={eventDates["wedding"] || ""}
+                                        onChange={(d) => handleSetEventDate("wedding", d)}
+                                        bookedDates={bookedDates}
+                                        placeholder="Select Day 1 (Mandap/Haldi)"
+                                        dark={true}
+                                      />
+                                    </div>
+
+                                    {/* Day 2 Date: Lagna / Wedding */}
+                                    <div className="space-y-1.5">
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
+                                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                          Day 2: Lagna Date (Optional)
+                                        </label>
+                                        {eventDates["wedding_day2"] && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = { ...eventDates };
+                                              delete updated["wedding_day2"];
+                                              setEventDates(updated);
+                                            }}
+                                            className="text-[10px] text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                                          >
+                                            Clear Day 2
+                                          </button>
+                                        )}
+                                      </div>
+                                      <CustomDatePicker
+                                        value={eventDates["wedding_day2"] || ""}
+                                        onChange={(d) => handleSetEventDate("wedding_day2", d)}
+                                        bookedDates={bookedDates}
+                                        placeholder="Select Day 2 Date"
+                                        dark={true}
+                                      />
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="w-full sm:w-64 shrink-0">
-                                  <CustomDatePicker
-                                    value={eventDates[event.id] || (event.id === "cinematic_candid" ? (eventDates["wedding"] || "") : "")}
-                                    onChange={(d) => handleSetEventDate(event.id, d)}
-                                    bookedDates={bookedDates}
-                                    placeholder={`Select ${event.name} Date`}
-                                    dark={true}
-                                  />
+                              ) : (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="mt-3 pt-3 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.02] -mx-2 -mb-2 p-3.5 rounded-2xl cursor-default"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
+                                      <Calendar className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                      <span className="text-xs font-bold text-white block">
+                                        {event.name} Date *
+                                      </span>
+                                      <span className="text-[10px] text-slate-400">
+                                        Select specific date for this ceremony
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="w-full sm:w-64 shrink-0">
+                                    <CustomDatePicker
+                                      value={eventDates[event.id] || (event.id === "cinematic_candid" ? (eventDates["wedding"] || "") : "")}
+                                      onChange={(d) => handleSetEventDate(event.id, d)}
+                                      bookedDates={bookedDates}
+                                      placeholder={`Select ${event.name} Date`}
+                                      dark={true}
+                                    />
+                                  </div>
                                 </div>
-                              </div>
+                              )
                             )}
                           </div>
                         );
@@ -1745,6 +1830,78 @@ export default function CustomPlanBuilder() {
                     {selectedCeremonies.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {selectedCeremonies.map((c) => {
+                          if (c.id === "wedding") {
+                            const isDay1Set = Boolean(eventDates["wedding"]);
+                            const isDay2Set = Boolean(eventDates["wedding_day2"]);
+
+                            return (
+                              <div
+                                key={c.id}
+                                className="sm:col-span-2 p-5 rounded-2xl border bg-white/[0.04] border-white/10 space-y-3"
+                              >
+                                <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-amber-400" />
+                                    <span className="text-sm font-bold text-white">Wedding (Lagna) Ceremony Dates</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 font-bold">
+                                      2 Days Support
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  {/* Day 1 */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-amber-300">Day 1: Mandap / Haldi Date *</span>
+                                      {isDay1Set && (
+                                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
+                                          ✓ Set
+                                        </span>
+                                      )}
+                                    </div>
+                                    <CustomDatePicker
+                                      value={eventDates["wedding"] || ""}
+                                      onChange={(d) => handleSetEventDate("wedding", d)}
+                                      bookedDates={bookedDates}
+                                      placeholder="Select Day 1 (Mandap/Haldi)"
+                                      dark={true}
+                                    />
+                                  </div>
+
+                                  {/* Day 2 */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-300">Day 2: Lagna Date (Optional)</span>
+                                      {isDay2Set && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = { ...eventDates };
+                                            delete updated["wedding_day2"];
+                                            setEventDates(updated);
+                                          }}
+                                          className="text-[10px] text-red-400 hover:text-red-300 cursor-pointer"
+                                        >
+                                          Clear Day 2
+                                        </button>
+                                      )}
+                                    </div>
+                                    <CustomDatePicker
+                                      value={eventDates["wedding_day2"] || ""}
+                                      onChange={(d) => handleSetEventDate("wedding_day2", d)}
+                                      bookedDates={bookedDates}
+                                      placeholder="Select Day 2 Date"
+                                      dark={true}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           const isCinematic = c.id === "cinematic_candid";
                           const currentDate = eventDates[c.id] || (isCinematic ? (eventDates["wedding"] || "") : "");
                           const isDateSet = Boolean(currentDate);
@@ -1919,20 +2076,36 @@ export default function CustomPlanBuilder() {
                                 Reserved Ceremony Dates
                               </span>
                               <div className="flex flex-wrap gap-1.5">
-                                {selectedCeremonies.map((c) => (
-                                  <span
-                                    key={c.id}
-                                    className="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300"
-                                  >
-                                    <strong className="text-amber-300">{c.name}:</strong>{" "}
-                                    {eventDates[c.id]
-                                      ? formatLocalDate(eventDates[c.id], {
-                                          day: "numeric",
-                                          month: "short"
-                                        })
-                                      : "Pending"}
-                                  </span>
-                                ))}
+                                {selectedCeremonies.map((c) => {
+                                  if (c.id === "wedding") {
+                                    return (
+                                      <span
+                                        key={c.id}
+                                        className="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300"
+                                      >
+                                        <strong className="text-amber-300">Wedding:</strong>{" "}
+                                        {eventDates["wedding"]
+                                          ? formatLocalDate(eventDates["wedding"], { day: "numeric", month: "short" })
+                                          : "Pending"}
+                                        {eventDates["wedding_day2"] && ` & Day 2: ${formatLocalDate(eventDates["wedding_day2"], { day: "numeric", month: "short" })}`}
+                                      </span>
+                                    );
+                                  }
+                                  return (
+                                    <span
+                                      key={c.id}
+                                      className="text-[10px] font-mono bg-white/5 border border-white/10 px-2 py-0.5 rounded text-slate-300"
+                                    >
+                                      <strong className="text-amber-300">{c.name}:</strong>{" "}
+                                      {eventDates[c.id]
+                                        ? formatLocalDate(eventDates[c.id], {
+                                            day: "numeric",
+                                            month: "short"
+                                          })
+                                        : "Pending"}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
@@ -2144,20 +2317,42 @@ export default function CustomPlanBuilder() {
                       📅 Reserved Ceremony Dates
                     </span>
                     <div className="space-y-1.5 text-xs">
-                      {selectedCeremonies.map((c) => (
-                        <div key={c.id} className="flex justify-between items-center text-slate-300 py-1 border-b border-white/5 last:border-0">
-                          <span className="font-medium text-white">{c.name}</span>
-                          <span className="font-mono text-amber-300 font-bold">
-                            {eventDates[c.id]
-                              ? formatLocalDate(eventDates[c.id], {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric"
-                                })
-                              : "Date pending"}
-                          </span>
-                        </div>
-                      ))}
+                      {selectedCeremonies.map((c) => {
+                        if (c.id === "wedding") {
+                          return (
+                            <div key={c.id} className="flex justify-between items-center text-slate-300 py-1 border-b border-white/5 last:border-0">
+                              <span className="font-medium text-white">{c.name}</span>
+                              <span className="font-mono text-amber-300 font-bold text-right">
+                                {eventDates["wedding"] ? (
+                                  eventDates["wedding_day2"] ? (
+                                    <span>
+                                      Day 1: {formatLocalDate(eventDates["wedding"], { day: "numeric", month: "short" })} | Day 2: {formatLocalDate(eventDates["wedding_day2"], { day: "numeric", month: "short" })}
+                                    </span>
+                                  ) : (
+                                    formatLocalDate(eventDates["wedding"], { day: "numeric", month: "short", year: "numeric" })
+                                  )
+                                ) : (
+                                  "Date pending"
+                                )}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div key={c.id} className="flex justify-between items-center text-slate-300 py-1 border-b border-white/5 last:border-0">
+                            <span className="font-medium text-white">{c.name}</span>
+                            <span className="font-mono text-amber-300 font-bold">
+                              {eventDates[c.id]
+                                ? formatLocalDate(eventDates[c.id], {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric"
+                                  })
+                                : "Date pending"}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -2166,18 +2361,15 @@ export default function CustomPlanBuilder() {
                     <a
                       href={`https://wa.me/919876543210?text=${encodeURIComponent(
                         `Hello Vrundavan Studio Junagadh! I have created custom booking quote ${quoteId}. Functions & Dates: ${selectedCeremonies
-                          .map(
-                            (c) =>
-                              `${c.name}: ${
-                                eventDates[c.id]
-                                  ? formatLocalDate(eventDates[c.id], {
-                                      day: "numeric",
-                                      month: "short",
-                                      year: "numeric"
-                                    })
-                                  : "Pending"
-                              }`
-                          )
+                          .map((c) => {
+                            if (c.id === "wedding" && eventDates["wedding"]) {
+                              if (eventDates["wedding_day2"]) {
+                                return `Wedding: Day 1 (Mandap): ${formatLocalDate(eventDates["wedding"])}, Day 2 (Lagna): ${formatLocalDate(eventDates["wedding_day2"])}`;
+                              }
+                              return `Wedding: ${formatLocalDate(eventDates["wedding"])}`;
+                            }
+                            return `${c.name}: ${eventDates[c.id] ? formatLocalDate(eventDates[c.id]) : "Pending"}`;
+                          })
                           .join(" | ")}. Total investment: ₹${total.toLocaleString(
                           "en-IN"
                         )}. Please confirm team assignment.`
@@ -2245,10 +2437,10 @@ export default function CustomPlanBuilder() {
                             {item.date ? (
                               <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">
                                 <Calendar className="w-2.5 h-2.5 text-amber-400" />
-                                {formatLocalDate(item.date, {
-                                  day: "numeric",
-                                  month: "short"
-                                })}
+                                {item.date.includes("&")
+                                  ? item.date.split("&").map(d => formatLocalDate(d.trim(), { day: "numeric", month: "short" })).join(" & ")
+                                  : formatLocalDate(item.date, { day: "numeric", month: "short" })
+                                }
                               </span>
                             ) : item.eventId ? (
                               <span className="text-[10px] font-mono text-amber-400/70 flex items-center gap-1">
