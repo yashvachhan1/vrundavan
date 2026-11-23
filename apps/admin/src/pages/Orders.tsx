@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { DEFAULT_MOCK_ORDERS, DEFAULT_MOCK_TEAM } from '../lib/mockData';
+import { DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
 // Custom Multi-Select Dropdown Component
 function MultiSelectDropdown({ options, selected, onChange }: { options: string[], selected: string[], onChange: (selected: string[]) => void }) {
@@ -171,23 +171,48 @@ export default function Orders() {
       // Supabase offline/paused
     }
 
-    // 3. Fallback to localStorage or mock data (never allow empty array wipeout)
+    // Helper to identify and purge any static mock orders
+    const isMockOrder = (o: any) => {
+      if (!o) return true;
+      const id = String(o.id || '');
+      const quoteId = String(o.quote_id || '');
+      const customer = String(o.customer || '').toLowerCase();
+      const email = String(o.email || '').toLowerCase();
+      return (
+        id.startsWith('ORD-10') ||
+        id === 'ORD-001' ||
+        id === 'ORD-002' ||
+        quoteId === 'VRUN-7A1B' ||
+        quoteId === 'VRUN-8C2D' ||
+        quoteId === 'VRUN-9E3F' ||
+        quoteId === 'VRUN-4K9L' ||
+        quoteId === 'VRUN-5M8N' ||
+        customer.includes('rahul verma') ||
+        customer.includes('sneha patel') ||
+        customer.includes('amit & riya') ||
+        customer.includes('darshan joshi') ||
+        customer.includes('kavita mehta') ||
+        email.includes('example.com')
+      );
+    };
+
+    // 3. Fallback to localStorage (clean of mock data)
     if (loadedOrders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
       if (local) {
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            loadedOrders = parsed;
+            loadedOrders = parsed.filter(o => !isMockOrder(o));
           }
         } catch {
           // ignore
         }
       }
-      if (loadedOrders.length === 0) {
-        loadedOrders = DEFAULT_MOCK_ORDERS as unknown as Order[];
-      }
     }
+
+    // Always purge static mock orders completely
+    loadedOrders = loadedOrders.filter(o => !isMockOrder(o));
     if (loadedTeam.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
       if (local) {
@@ -411,12 +436,24 @@ export default function Orders() {
       await updateOrderInDb(order.id, { status: newStatus });
 
       if (newStatus === 'confirmed') {
-        const apiUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:3000';
+        const defaultFrontend = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+          ? LIVE_FRONTEND_URL
+          : 'http://localhost:3000';
+        const apiUrl = import.meta.env.VITE_FRONTEND_URL || defaultFrontend;
+
         await fetch(`${apiUrl}/api/notify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'order_confirmed_invoice', order: { ...order, status: newStatus } })
         }).catch(e => console.error("Failed to send invoice notification", e));
+
+        if (apiUrl !== LIVE_FRONTEND_URL) {
+          fetch(`${LIVE_FRONTEND_URL}/api/notify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'order_confirmed_invoice', order: { ...order, status: newStatus } })
+          }).catch(e => console.error("Failed to send live invoice notification", e));
+        }
       }
 
       setOrders(orders.map(o => 
@@ -578,17 +615,26 @@ export default function Orders() {
                     <button 
                       onClick={() => handleStatusUpdate(order, 'confirmed')}
                       disabled={processingOrderId === order.id}
-                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2 rounded-xl text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20"
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed text-white py-2 rounded-xl text-xs font-bold transition-colors shadow-sm shadow-emerald-500/20 cursor-pointer"
                     >
                       {processingOrderId === order.id ? 'Processing...' : 'Payment Received'}
                     </button>
                     <button 
                       onClick={() => handleSendEmail(order, 'payment_reminder')}
-                      className="flex-1 bg-white hover:bg-amber-50 text-amber-600 border border-amber-200 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                      className="flex-1 bg-white hover:bg-amber-50 text-amber-600 border border-amber-200 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer"
                     >
                       Send Email Reminder
                     </button>
                   </div>
+                  <button 
+                    type="button"
+                    onClick={() => handleDeleteOrder(order)}
+                    disabled={processingOrderId === order.id || deletingOrderId === order.id}
+                    className="w-full flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                    title="Reject and cancel this unpaid quote"
+                  >
+                    <X className="w-3.5 h-3.5" strokeWidth={3} /> {deletingOrderId === order.id ? 'Rejecting...' : 'Reject / Cancel Order'}
+                  </button>
                 </div>
               ) : activeTab === 'pending' ? (
                 <>

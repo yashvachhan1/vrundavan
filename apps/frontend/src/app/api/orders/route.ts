@@ -1,42 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '../../../../utils/supabase/server';
 
-// In-memory store for orders to allow local testing and immediate availability
-const mockOrders = [
-  {
-    id: 'ORD-001',
-    quote_id: 'VRUN-7A1B',
-    customer: 'Rahul Verma',
-    phone: '+91 98765 43210',
-    email: 'rahul@example.com',
-    package: 'Custom Plan: Wedding Day (Photo + Video - ₹50,000), Drone Aerial Coverage (1 Day - ₹10,000)',
-    total_amount: 60000,
-    location: 'Junagadh',
-    date: '2026-08-15',
-    status: 'pending',
-    amountPaid: '5000',
-    assignedTeam: [],
-    created_at: new Date().toISOString()
-  },
-  {
-    id: 'ORD-002',
-    quote_id: 'VRUN-8C2D',
-    customer: 'Sneha Patel',
-    phone: '+91 87654 32109',
-    email: 'sneha@example.com',
-    package: 'Custom Plan: Pre-Wedding Shoot (₹15,000), Engagement Ceremony (Photo Only - ₹11,500)',
-    total_amount: 26500,
-    location: 'Rajkot',
-    date: '2026-08-12',
-    status: 'confirmed',
-    assignedTeam: [],
-    amountPaid: '5000',
-    created_at: new Date().toISOString()
-  }
-];
-
+// In-memory store for real customer orders
 if (!(global as any).ordersStore) {
-  (global as any).ordersStore = [...mockOrders];
+  (global as any).ordersStore = [];
+} else {
+  // Purge any legacy static mock data
+  (global as any).ordersStore = (global as any).ordersStore.filter(
+    (o: any) => o.id !== 'ORD-001' && o.id !== 'ORD-002' && o.email !== 'rahul@example.com' && o.email !== 'sneha@example.com'
+  );
 }
 
 const corsHeaders = {

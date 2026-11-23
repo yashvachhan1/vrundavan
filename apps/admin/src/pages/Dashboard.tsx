@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Users, Package, Calendar, TrendingUp, RefreshCcw, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { DEFAULT_MOCK_ORDERS } from '../lib/mockData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 export default function Dashboard() {
@@ -68,14 +67,39 @@ export default function Dashboard() {
       // Supabase connection error
     }
 
-    // 3. Fallback to localStorage (only if it has valid non-empty items)
+    // Helper to identify and purge any static mock orders
+    const isMockOrder = (o: any) => {
+      if (!o) return true;
+      const id = String(o.id || '');
+      const quoteId = String(o.quote_id || '');
+      const customer = String(o.customer || '').toLowerCase();
+      const email = String(o.email || '').toLowerCase();
+      return (
+        id.startsWith('ORD-10') ||
+        id === 'ORD-001' ||
+        id === 'ORD-002' ||
+        quoteId === 'VRUN-7A1B' ||
+        quoteId === 'VRUN-8C2D' ||
+        quoteId === 'VRUN-9E3F' ||
+        quoteId === 'VRUN-4K9L' ||
+        quoteId === 'VRUN-5M8N' ||
+        customer.includes('rahul verma') ||
+        customer.includes('sneha patel') ||
+        customer.includes('amit & riya') ||
+        customer.includes('darshan joshi') ||
+        customer.includes('kavita mehta') ||
+        email.includes('example.com')
+      );
+    };
+
+    // 3. Fallback to localStorage (clean of mock data)
     if (loadedOrders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
       if (local) {
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            loadedOrders = parsed;
+            loadedOrders = parsed.filter(o => !isMockOrder(o));
           }
         } catch {
           // ignore
@@ -83,12 +107,10 @@ export default function Dashboard() {
       }
     }
 
-    // 4. Default Mock Orders fallback if still empty
-    if (loadedOrders.length === 0) {
-      loadedOrders = DEFAULT_MOCK_ORDERS;
-      localStorage.setItem('vrundavan_orders', JSON.stringify(DEFAULT_MOCK_ORDERS));
-      setIsUsingDemo(true);
-    }
+    // Always ensure mock orders are completely purged
+    loadedOrders = loadedOrders.filter(o => !isMockOrder(o));
+    localStorage.setItem('vrundavan_orders', JSON.stringify(loadedOrders));
+    setIsUsingDemo(false);
 
     setOrders(loadedOrders);
     setIsLoading(false);

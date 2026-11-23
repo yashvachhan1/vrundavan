@@ -1,5 +1,33 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import fs from 'fs';
+import path from 'path';
+
+// Helper to locate brochure PDF for attachments
+const getBrochurePdfAttachment = () => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'public', 'Vrundavan_Studio_Junagadh.pdf'),
+    path.join(process.cwd(), 'apps', 'frontend', 'public', 'Vrundavan_Studio_Junagadh.pdf'),
+    path.join(process.cwd(), '..', 'public', 'Vrundavan_Studio_Junagadh.pdf'),
+    'C:\\Users\\BAPS\\Downloads\\vrundavan\\apps\\frontend\\public\\Vrundavan_Studio_Junagadh.pdf',
+    'C:\\Users\\BAPS\\Downloads\\Vrundavan Studio, Junagadh (1).pdf'
+  ];
+
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        return {
+          filename: 'Vrundavan Studio, Junagadh.pdf',
+          path: p,
+          contentType: 'application/pdf'
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return null;
+};
 
 // Meta WhatsApp Cloud API helper
 const sendMetaWhatsApp = async (toPhone: string, templateName: string, customVariables: string[] = []) => {
@@ -128,7 +156,16 @@ export async function POST(req: Request) {
       `;
 
       if (order.email && senderEmail) {
-        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
+        const pdfAttachment = getBrochurePdfAttachment();
+        const attachments = pdfAttachment ? [pdfAttachment] : [];
+
+        await transporter.sendMail({
+          from: fromSender,
+          to: order.email,
+          subject,
+          html,
+          attachments
+        });
         responses.email = true;
       }
       
@@ -190,7 +227,16 @@ export async function POST(req: Request) {
       `;
 
       if (order.email && senderEmail) {
-        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
+        const pdfAttachment = getBrochurePdfAttachment();
+        const attachments = pdfAttachment ? [pdfAttachment] : [];
+
+        await transporter.sendMail({
+          from: fromSender,
+          to: order.email,
+          subject,
+          html,
+          attachments
+        });
         responses.email = true;
       }
     }
@@ -220,7 +266,16 @@ export async function POST(req: Request) {
       `;
 
       if (order.email && senderEmail) {
-        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
+        const pdfAttachment = getBrochurePdfAttachment();
+        const attachments = pdfAttachment ? [pdfAttachment] : [];
+
+        await transporter.sendMail({
+          from: fromSender,
+          to: order.email,
+          subject,
+          html,
+          attachments
+        });
         responses.email = true;
       }
     }
@@ -294,6 +349,11 @@ export async function POST(req: Request) {
               </tbody>
             </table>
 
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 25px;">
+              <p style="margin: 0 0 6px 0; color: #003366; font-size: 15px; font-weight: bold;">📎 Attached: Vrundavan Studio, Junagadh.pdf</p>
+              <p style="margin: 0; color: #64748b; font-size: 13px;">Please find your official studio brochure &amp; service guidelines attached with this email confirmation.</p>
+            </div>
+
             <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 40px;">
               <p style="margin: 0; color: #475569; font-size: 14px;">This is a system-generated invoice confirming your booking. We look forward to capturing your beautiful moments!</p>
             </div>
@@ -304,7 +364,16 @@ export async function POST(req: Request) {
       `;
 
       if (order.email && senderEmail) {
-        await transporter.sendMail({ from: fromSender, to: order.email, subject, html });
+        const pdfAttachment = getBrochurePdfAttachment();
+        const attachments = pdfAttachment ? [pdfAttachment] : [];
+
+        await transporter.sendMail({
+          from: fromSender,
+          to: order.email,
+          subject,
+          html,
+          attachments
+        });
         responses.email = true;
       }
       

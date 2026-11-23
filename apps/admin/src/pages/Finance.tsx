@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IndianRupee, AlertCircle, Wallet, FileText, User, Plus, CheckCircle2, Bell, X, Upload, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { DEFAULT_MOCK_ORDERS, DEFAULT_MOCK_TEAM } from '../lib/mockData';
+import { DEFAULT_MOCK_TEAM } from '../lib/mockData';
 
 interface Payout {
   id: string;
@@ -111,22 +111,45 @@ export default function Finance() {
       // Supabase connection error
     }
 
+    const isMockOrder = (o: any) => {
+      if (!o) return true;
+      const id = String(o.id || '');
+      const quoteId = String(o.quote_id || '');
+      const customer = String(o.customer || '').toLowerCase();
+      const email = String(o.email || '').toLowerCase();
+      return (
+        id.startsWith('ORD-10') ||
+        id === 'ORD-001' ||
+        id === 'ORD-002' ||
+        quoteId === 'VRUN-7A1B' ||
+        quoteId === 'VRUN-8C2D' ||
+        quoteId === 'VRUN-9E3F' ||
+        quoteId === 'VRUN-4K9L' ||
+        quoteId === 'VRUN-5M8N' ||
+        customer.includes('rahul verma') ||
+        customer.includes('sneha patel') ||
+        customer.includes('amit & riya') ||
+        customer.includes('darshan joshi') ||
+        customer.includes('kavita mehta') ||
+        email.includes('example.com')
+      );
+    };
+
     if (orders.length === 0) {
       const local = localStorage.getItem('vrundavan_orders');
       if (local) {
         try {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            orders = parsed;
+            orders = parsed.filter(o => !isMockOrder(o));
           }
         } catch {
           // ignore
         }
       }
-      if (orders.length === 0) {
-        orders = DEFAULT_MOCK_ORDERS as unknown as OrderItem[];
-      }
     }
+
+    orders = orders.filter(o => !isMockOrder(o));
     if (members.length === 0) {
       const local = localStorage.getItem('vrundavan_team');
       if (local) {
