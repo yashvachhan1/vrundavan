@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Check, X, Image as ImageIcon, Calendar as CalendarIcon, Mail, ChevronDown, MessageCircle, Save, CalendarPlus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DEFAULT_MOCK_TEAM } from '../lib/mockData';
+import { formatLocalDate } from '../lib/dateUtils';
 
 // Custom Multi-Select Dropdown Component
 function MultiSelectDropdown({ options, selected, onChange }: { options: string[], selected: string[], onChange: (selected: string[]) => void }) {
@@ -578,7 +579,7 @@ export default function Orders() {
                 </div>
                 
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 font-medium">
-                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><CalendarIcon className="w-4 h-4 text-[#003366]" /> {order.date}</div>
+                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><CalendarIcon className="w-4 h-4 text-[#003366]" /> {formatLocalDate(order.date)}</div>
                   <div className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100"><Mail className="w-4 h-4 text-[#003366]" /> {order.email}</div>
                   
                   {/* Chat on WhatsApp Button */}
@@ -683,11 +684,9 @@ export default function Orders() {
                   {order.date && (
                     <button 
                       onClick={() => {
-                        const dateObj = new Date(order.date);
-                        // Format to YYYYMMDD
-                        const formattedDate = dateObj.toISOString().split('T')[0].replace(/-/g, '');
-                        // Add 2 hours for a default block
-                        const endDate = new Date(dateObj.getTime() + 2 * 60 * 60 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+                        const cleanDate = String(order.date).split('T')[0].replace(/-/g, '');
+                        const formattedDate = `${cleanDate}T090000Z`;
+                        const endDate = `${cleanDate}T180000Z`;
                         
                         const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Vrundavan Booking: ' + order.customer)}&dates=${formattedDate}/${endDate}&details=${encodeURIComponent('Package: ' + order.package + '\nClient: ' + order.customer + '\nPhone: ' + order.phone)}`;
                         window.open(url, '_blank');

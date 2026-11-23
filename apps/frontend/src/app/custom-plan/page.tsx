@@ -37,6 +37,7 @@ import {
   QrCode
 } from "lucide-react";
 import { createClient } from "../../../utils/supabase/client";
+import { formatLocalDate } from "@/lib/dateUtils";
 
 // Catalog Interface
 interface EventCardData {
@@ -604,7 +605,7 @@ export default function CustomPlanBuilder() {
     const parts: string[] = [];
     selectedItemsList.forEach((item) => {
       const dateText = item.date
-        ? ` [📅 ${new Date(item.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}]`
+        ? ` [📅 ${formatLocalDate(item.date, { day: "numeric", month: "short", year: "numeric" })}]`
         : "";
       parts.push(`${item.label}${dateText}`);
     });
@@ -936,7 +937,7 @@ export default function CustomPlanBuilder() {
                       </span>
                       <p className="text-sm font-bold text-white">
                         {resumedOrder.date
-                          ? new Date(resumedOrder.date).toLocaleDateString("en-IN", {
+                          ? formatLocalDate(resumedOrder.date, {
                               day: "numeric",
                               month: "long",
                               year: "numeric"
@@ -1925,7 +1926,7 @@ export default function CustomPlanBuilder() {
                                   >
                                     <strong className="text-amber-300">{c.name}:</strong>{" "}
                                     {eventDates[c.id]
-                                      ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                                      ? formatLocalDate(eventDates[c.id], {
                                           day: "numeric",
                                           month: "short"
                                         })
@@ -2148,7 +2149,7 @@ export default function CustomPlanBuilder() {
                           <span className="font-medium text-white">{c.name}</span>
                           <span className="font-mono text-amber-300 font-bold">
                             {eventDates[c.id]
-                              ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                              ? formatLocalDate(eventDates[c.id], {
                                   day: "numeric",
                                   month: "short",
                                   year: "numeric"
@@ -2169,7 +2170,7 @@ export default function CustomPlanBuilder() {
                             (c) =>
                               `${c.name}: ${
                                 eventDates[c.id]
-                                  ? new Date(eventDates[c.id]).toLocaleDateString("en-IN", {
+                                  ? formatLocalDate(eventDates[c.id], {
                                       day: "numeric",
                                       month: "short",
                                       year: "numeric"
@@ -2244,7 +2245,7 @@ export default function CustomPlanBuilder() {
                             {item.date ? (
                               <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-bold">
                                 <Calendar className="w-2.5 h-2.5 text-amber-400" />
-                                {new Date(item.date).toLocaleDateString("en-IN", {
+                                {formatLocalDate(item.date, {
                                   day: "numeric",
                                   month: "short"
                                 })}

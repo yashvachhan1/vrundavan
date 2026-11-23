@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { parseLocalDate, formatLocalDate } from '../lib/dateUtils';
 
 interface CustomDatePickerProps {
   value: string;
@@ -24,7 +25,7 @@ export function CustomDatePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   
-  const initialDate = value ? new Date(value) : new Date();
+  const initialDate = parseLocalDate(value) || new Date();
   const [currentMonth, setCurrentMonth] = useState(new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -33,6 +34,15 @@ export function CustomDatePicker({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (value) {
+      const parsed = parseLocalDate(value);
+      if (parsed) {
+        setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+      }
+    }
+  }, [value]);
 
   const calculatePosition = () => {
     if (!triggerRef.current) return;
@@ -117,27 +127,20 @@ export function CustomDatePicker({
   today.setHours(0, 0, 0, 0);
 
   const isDateBooked = (year: number, month: number, day: number) => {
-    const d = new Date(year, month, day);
-    const dateStr = [
-      d.getFullYear(),
-      String(d.getMonth() + 1).padStart(2, '0'),
-      String(d.getDate()).padStart(2, '0')
-    ].join('-');
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return bookedDates.includes(dateStr);
   };
 
   const isDateInPast = (year: number, month: number, day: number) => {
-    const d = new Date(year, month, day);
-    return d < today;
+    const checkDate = new Date(year, month, day, 23, 59, 59);
+    return checkDate < today;
   };
 
   const handleDateSelect = (day: number) => {
-    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateStr = [
-      d.getFullYear(),
-      String(d.getMonth() + 1).padStart(2, '0'),
-      String(d.getDate()).padStart(2, '0')
-    ].join('-');
+    const year = currentMonth.getFullYear();
+    const monthStr = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
     
     onChange(dateStr);
     setIsOpen(false);
@@ -145,8 +148,7 @@ export function CustomDatePicker({
 
   const getDisplayValue = () => {
     if (!value) return '';
-    const d = new Date(value);
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    return formatLocalDate(value, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -236,11 +238,7 @@ export function CustomDatePicker({
               const past = isDateInPast(currentMonth.getFullYear(), currentMonth.getMonth(), day);
               const disabled = booked || past;
               
-              const currentDateStr = [
-                currentMonth.getFullYear(),
-                String(currentMonth.getMonth() + 1).padStart(2, '0'),
-                String(day).padStart(2, '0')
-              ].join('-');
+              const currentDateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isSelected = value === currentDateStr;
 
               let btnStyle = "";

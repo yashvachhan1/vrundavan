@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Film, Image as ImageIcon, Video, CheckCircle2, MoreVertical, Plus, Calendar as CalendarIcon, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { formatLocalDate } from '../lib/dateUtils';
 
 const initialColumns = [
   { id: 'raw', title: 'Raw Footage', color: 'text-slate-600', bg: 'bg-slate-100', dot: 'bg-slate-400' },
@@ -171,7 +172,7 @@ export default function Deliverables() {
                       {/* Date */}
                       <div className={`flex items-center gap-1.5 text-xs font-bold ${task.status === 'delivered' ? 'text-emerald-600' : 'text-slate-500'}`}>
                         {task.status === 'delivered' ? <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={3} /> : <CalendarIcon className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                        {task.due_date ? new Date(task.due_date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : 'No date'}
+                        {task.due_date ? formatLocalDate(task.due_date, { month: 'short', day: 'numeric' }) : 'No date'}
                       </div>
                       
                       {/* Editor Assignment */}

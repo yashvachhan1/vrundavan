@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User, Mail, Phone, Image as ImageIcon, CheckCircle, Search, ArrowRight, ShieldCheck, UploadCloud, LayoutDashboard, Clock } from 'lucide-react';
 import { createClient } from '../../../utils/supabase/client';
+import { formatLocalDate, toLocalDateString } from '@/lib/dateUtils';
 import Link from 'next/link';
 
 export default function BookingPage() {
@@ -199,7 +200,7 @@ export default function BookingPage() {
         email: formData.email,
         phone: formData.phone,
         package: formData.package,
-        date: selectedDate ? selectedDate.toISOString().split('T')[0] : null,
+        date: toLocalDateString(selectedDate) || null,
         total_amount: packagePrice,
         status: 'pending_payment',
         amountPaid: '0'
@@ -394,7 +395,7 @@ export default function BookingPage() {
                       <button
                         key={day}
                         disabled={isDisabled}
-                        onClick={() => setSelectedDate(new Date(year, month, day))}
+                        onClick={() => setSelectedDate(new Date(year, month, day, 12, 0, 0))}
                         className={`h-14 rounded-xl flex items-center justify-center font-medium transition-all text-sm
                           ${isDisabled && !isFullyBooked ? 'text-gray-300 bg-gray-50 cursor-not-allowed' : ''}
                           ${isFullyBooked ? 'line-through decoration-red-400 decoration-2 text-gray-400 bg-gray-50 cursor-not-allowed' : ''}
@@ -622,7 +623,7 @@ export default function BookingPage() {
                   </div>
                   <div>
                     <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Event Date</span>
-                    <span className="font-medium text-slate-700">{resumedOrder?.date ? new Date(resumedOrder.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}</span>
+                    <span className="font-medium text-slate-700">{resumedOrder?.date ? formatLocalDate(resumedOrder.date) : 'N/A'}</span>
                   </div>
                   <div>
                     <span className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Amount Paid</span>
