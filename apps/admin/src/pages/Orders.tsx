@@ -273,7 +273,14 @@ export default function Orders() {
 
     // 2. Sync with Supabase if online
     try {
-      await supabase.from('orders').update(updates).eq('id', orderId);
+      const allowedCols = ['customer', 'phone', 'email', 'package', 'date', 'status', 'amountPaid', 'total_amount', 'location', 'payment_screenshot_url', 'assignedTeam'];
+      const dbUpdates: Record<string, unknown> = {};
+      for (const k of allowedCols) {
+        if (updates[k] !== undefined) dbUpdates[k] = k === 'amountPaid' ? String(updates[k]) : updates[k];
+      }
+      if (Object.keys(dbUpdates).length > 0) {
+        await supabase.from('orders').update(dbUpdates).eq('id', orderId);
+      }
     } catch (err) {
       console.error("Error updating order in Supabase:", err);
     }

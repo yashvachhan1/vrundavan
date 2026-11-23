@@ -187,16 +187,15 @@ export default function BookingPage() {
   const handleCreateOrder = async () => {
     setIsSubmitting(true);
     try {
-      if (!supabase) throw new Error('Supabase client not initialized');
-      
       const packagePrice = formData.package.includes("Masterpiece") || formData.package.includes("1,75,000")
         ? 175000
         : formData.package.includes("Intimate") || formData.package.includes("85,000")
         ? 85000
         : 55000;
 
-      const { data, error } = await supabase.from('orders').insert([{
+      const orderPayload = {
         customer: formData.name,
+        name: formData.name,
         email: formData.email,
         phone: formData.phone,
         package: formData.package,
@@ -204,21 +203,29 @@ export default function BookingPage() {
         total_amount: packagePrice,
         status: 'pending_payment',
         amountPaid: '0'
-      }]).select().single();
-      
-      if (error) throw error;
-      if (data) {
-        setOrderId(data.id);
-        
-        // Notify Admin
-        fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'admin_new_order', order: data })
-        }).catch(e => console.error("Notification failed", e));
-        
-        setStep(4);
-      }
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload)
+      });
+      const resData = await res.json();
+      const createdOrder = resData.order;
+
+      if (!createdOrder) throw new Error(resData.error || 'Failed to create order');
+
+      setOrderId(createdOrder.id);
+      setResumedOrder(createdOrder);
+
+      // Notify Admin
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin_new_order', order: createdOrder })
+      }).catch(e => console.error("Notification failed", e));
+
+      setStep(4);
     } catch (err: any) {
       alert("Failed to submit booking: " + err.message);
     } finally {
@@ -229,23 +236,26 @@ export default function BookingPage() {
   const handlePaymentSubmit = async () => {
     setIsSubmitting(true);
     try {
-      if (!supabase || !orderId) return;
+      if (!orderId) return;
       
       let screenshotUrl = null;
-      if (paymentFile) {
-        const fileExt = paymentFile.name.split('.').pop();
-        const fileName = `${orderId}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('payment-screenshots')
-          .upload(fileName, paymentFile);
-          
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('payment-screenshots')
-          .getPublicUrl(fileName);
-          
-        screenshotUrl = publicUrl;
+      if (paymentFile && supabase) {
+        try {
+          const fileExt = paymentFile.name.split('.').pop();
+          const fileName = `${orderId}-${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('payment-screenshots')
+            .upload(fileName, paymentFile);
+            
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('payment-screenshots')
+              .getPublicUrl(fileName);
+            screenshotUrl = publicUrl;
+          }
+        } catch (uploadErr) {
+          console.warn("Storage upload fallback:", uploadErr);
+        }
       }
       
       const currentPkg = resumedOrder?.package || formData.package;
@@ -260,17 +270,23 @@ export default function BookingPage() {
         updatePayload.payment_screenshot_url = screenshotUrl;
       }
 
-      const { data: updatedOrder, error } = await supabase.from('orders').update(updatePayload).eq('id', orderId).select().single();
-      if (error) throw error;
+      const res = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: orderId,
+          updates: updatePayload
+        })
+      });
+      const resData = await res.json();
+      const updatedOrder = resData.order || { id: orderId, ...updatePayload };
       
       // Notify Customer
-      if (updatedOrder) {
-        fetch('/api/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'customer_confirmed', order: updatedOrder })
-        }).catch(e => console.error("Notification failed", e));
-      }
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'customer_confirmed', order: updatedOrder })
+      }).catch(e => console.error("Notification failed", e));
       
       setStep(5);
     } catch (err: any) {
